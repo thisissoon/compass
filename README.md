@@ -1,6 +1,6 @@
 # Compass
 
-Poseidon is a release management tool (specific to SOON_\_) that handles managing namerd finagle delegation tables, mapping logical names to Kubernetets services deployed via Helm.
+Compass is a release management tool (specific to SOON_\_) that handles managing namerd finagle delegation tables, mapping logical names to Kubernetets services deployed via Helm.
 
 ## Goals
 
