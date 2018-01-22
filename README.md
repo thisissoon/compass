@@ -8,6 +8,7 @@ Poseidon is a release management tool (specific to SOON_\_) that handles managin
 * Easy management of mapping service logical names (Host name for example) to Kubernetets services
 * A UI appropriate for Humans to use (potentially interactive)
 * Ability to run as part of automation for CI/CD
+* gRPC Client / Server model - allowing for other UI's to be created
 
 ### CLI
 
