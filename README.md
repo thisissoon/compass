@@ -1,4 +1,4 @@
-# Poseidon
+# Compass
 
 Poseidon is a release management tool (specific to SOON_\_) that handles managing namerd finagle delegation tables, mapping logical names to Kubernetets services deployed via Helm.
 
@@ -19,7 +19,7 @@ Below are some initial CLI thoughts:
 To manage an application we would create on using the `upsert` command:
 
 ```
-poseidon manage --logical-name frontend --namespace http --description "Frontend application"
+compass manage --logical-name frontend --namespace http --description "Frontend application"
 ```
 
 This would take 3 arguments:
@@ -66,7 +66,7 @@ If neither `--service` or `--version` are provided an interactive UI will be
 displayed showing the availible servies to route too.
 
 ```
-poseidon route --logical-name frontend --version v1.2.3
-poseidon route --logical-name frontend --service frontend-v1-2-3
-poseidon route --logical-name frontend # spawns an interactive ui
+compass route --logical-name frontend --version v1.2.3
+compass route --logical-name frontend --service frontend-v1-2-3
+compass route --logical-name frontend # spawns an interactive ui
 ```
