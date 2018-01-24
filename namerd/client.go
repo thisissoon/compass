@@ -1,6 +1,7 @@
 package namerd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -81,6 +82,32 @@ func (c *Client) Dentries(dtab string) (Dentries, error) {
 		return nil, err
 	}
 	return dentries, nil
+}
+
+// UpdateDentries updates a delegation tables dentries
+func (c *Client) UpdateDentries(dtab string, dentries Dentries) error {
+	var body = new(bytes.Buffer)
+	enc := json.NewEncoder(body)
+	if err := enc.Encode(dentries); err != nil {
+		return err
+	}
+	url := c.url("api", "1", "dtabs", dtab)
+	req, err := http.NewRequest(http.MethodPut, url.String(), body)
+	if err != nil {
+		return err
+	}
+	req.Header.Add("Content-Type", "application/json")
+	rsp, err := c.client.Do(req)
+	if err != nil {
+		return err
+	}
+	defer rsp.Body.Close()
+	switch rsp.StatusCode {
+	case http.StatusNoContent:
+		return nil
+	default:
+		return fmt.Errorf("unexpected PUT response code: %s", rsp.StatusCode)
+	}
 }
 
 // New constructs a new Client, use Option functions to override
