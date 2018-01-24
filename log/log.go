@@ -9,8 +9,6 @@ import (
 // Default returns a new default logger setup from configuration
 func Default() zerolog.Logger {
 	f := map[string]interface{}{
-		"app":     config.APP_NAME,
-		"env":     config.Environment(),
 		"version": config.Version(),
 		"commit":  config.Commit(),
 	}
