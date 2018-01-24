@@ -32,6 +32,14 @@ func init() {
 	viper.BindEnv(CONFIG_PATH_KEY)
 }
 
+// A ConfigKey is used to lookup configuration values
+type ConfigKey string
+
+// String returns the string value of the config key
+func (k ConfigKey) String() string {
+	return string(k)
+}
+
 // FromFile reads configuration from a file, bind a CLI flag to
 func FromFile() error {
 	path := viper.GetString(CONFIG_PATH_KEY)
@@ -41,9 +49,7 @@ func FromFile() error {
 	return viper.ReadInConfig()
 }
 
-// BindPFlag binds a config key to a CLI pflag
-func BindPFlags(flags map[string]*pflag.Flag) {
-	for k, f := range flags {
-		viper.BindPFlag(k, f)
-	}
+// BindFlag binds a CLI flag to the provided config key
+func BindFlag(k ConfigKey, f *pflag.Flag) {
+	viper.BindPFlag(k.String(), f)
 }
