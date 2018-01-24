@@ -25,7 +25,7 @@ ensure:
 ifeq ("$(wildcard $(shell which dep))","")
 	go get github.com/golang/dep/cmd/dep
 endif
-	dep ensure -v && dep prune -v
+	dep ensure -v
 
 common-build-flags:
 ifeq ($(GOBUILD_VERBOSE),1)
