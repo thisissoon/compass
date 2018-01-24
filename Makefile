@@ -20,6 +20,13 @@ COMPRESS_BINARY ?= 0
 # Verbose build output
 GOBUILD_VERBOSE ?= 0
 
+# Run dep ensure and prun unneeded dependencies
+ensure:
+ifeq ("$(wildcard $(shell which dep))","")
+	go get github.com/golang/dep/cmd/dep
+endif
+	dep ensure -v && dep prune -v
+
 common-build-flags:
 ifeq ($(GOBUILD_VERBOSE),1)
 	$(eval GOBUILD_FLAGS += -v)
