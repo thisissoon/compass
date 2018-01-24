@@ -1,11 +1,18 @@
 package main
 
 import (
+	"os"
+	"os/signal"
+	"syscall"
+
 	"compass/config"
+	"compass/grpc"
+	"compass/logger"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/pflag"
 )
+
+var sigC = make(chan os.Signal)
 
 // Application entry point
 func main() {
@@ -18,7 +25,7 @@ func needleCmd() *cobra.Command {
 		Use:   "needle",
 		Short: "Needle is the gRPC server for the compass client.",
 		Run: func(cmd *cobra.Command, _ []string) {
-			cmd.Help()
+			os.Exit(startNeedle())
 		},
 	}
 	// Global flags
@@ -29,11 +36,28 @@ func needleCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringP("listen", "l", "", "server listen address")
 	// Bind flags to config options
-	config.BindPFlags(map[string]*pflag.Flag{
-		config.CONFIG_PATH_KEY: pflags.Lookup("config-file"),
-		config.LOG_FORMAT_KEY:  pflags.Lookup("log-format"),
-	})
+	config.BindFlag(grpc.ListenAddressConfigKey, flags.Lookup("listen"))
 	// Add sub commands
 	cmd.AddCommand(versionCmd())
 	return cmd
+}
+
+// startNeedle starts the needle gRPC server
+// returns os exit code
+func startNeedle() int {
+	config.FromFile()
+	logger := logger.New()
+	srv := grpc.NewServer(grpc.WithAddress(grpc.ListenAddress()))
+	addr, errC := srv.Serve()
+	logger.Debug().Str("address", addr.String()).Msg("gRPC server started")
+	defer srv.Stop()
+	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	select {
+	case sig := <-sigC:
+		logger.Debug().Str("signal", sig.String()).Msg("recieved OS signal")
+		return 0
+	case err := <-errC:
+		logger.Debug().Err(err).Msg("runtime error")
+		return 1
+	}
 }
