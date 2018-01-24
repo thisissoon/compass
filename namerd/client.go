@@ -1,8 +1,11 @@
 package namerd
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
+	"path"
 )
 
 // Dentries represents one or more Dentry
@@ -49,6 +52,35 @@ type Client struct {
 	host   string
 	scheme string
 	client *http.Client
+}
+
+// url constructs a url for the path
+func (c *Client) url(parts ...string) *url.URL {
+	return &url.URL{
+		Scheme: c.scheme,
+		Host:   c.host,
+		Path:   path.Join(parts...),
+	}
+}
+
+// Dentries returns the dentries for a specific delegation table
+func (c *Client) Dentries(dtab string) (Dentries, error) {
+	url := c.url("api", "1", "dtabs", dtab)
+	req, err := http.NewRequest(http.MethodGet, url.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+	rsp, err := c.client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer rsp.Body.Close()
+	var dentries Dentries
+	dec := json.NewDecoder(rsp.Body)
+	if err := dec.Decode(&dentries); err != nil {
+		return nil, err
+	}
+	return dentries, nil
 }
 
 // New constructs a new Client, use Option functions to override
