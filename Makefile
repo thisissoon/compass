@@ -37,7 +37,11 @@ ifeq ($(COMPRESS_BINARY),1)
 	$(eval LDFLAGS += -a -w -s)
 endif
 
-compass: common-build-flags common-ldflags |
+compass-ldflags:
+	$(eval LDFLAGS += -X compass/config.filename=compass)
+	$(eval LDFLAGS += -X compass/config.envprefix=compass)
+
+compass: common-build-flags common-ldflags compass-ldflags |
 	$(eval BIN_NAME ?= compass.$(BUILD_VERSION).$(GOOS)-$(GOARCH))
 	CGO_ENABLED=0 \
 	GOOS=$(GOOS) \
@@ -56,7 +60,11 @@ compass-image:
 		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
 		-t soon/compass:$(BUILD_VERSION) .
 
-needle: common-build-flags common-ldflags |
+needle-ldflags:
+	$(eval LDFLAGS += -X compass/config.filename=needle)
+	$(eval LDFLAGS += -X compass/config.envprefix=needle)
+
+needle: common-build-flags common-ldflags needle-ldflags |
 	$(eval BIN_NAME ?= needle.$(BUILD_VERSION).$(GOOS)-$(GOARCH))
 	CGO_ENABLED=0 \
 	GOOS=$(GOOS) \

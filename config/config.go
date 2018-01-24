@@ -1,35 +1,38 @@
 package config
 
 import (
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/pflag"
 	"github.com/spf13/viper"
 )
 
-// application name
-var configName = "compass"
-
-// configuration path viper lookup keys
-const (
-	CONFIG_PATH_KEY = "config"
+// compile time variables
+var (
+	// default config file name set at compile time
+	filename = "compass"
+	// default environment var prefix set at compile time
+	envprefix = "compass"
 )
+
+// Set this to override the default config file lookup to load
+// a specific config file
+var Path string
 
 // init sets default configuration file settings such as path look
 // up values and environment variable binding
 func init() {
 	// Config file lookup locations
 	viper.SetConfigType("toml")
-	viper.SetConfigName("compass")
-	viper.AddConfigPath("$HOME/.config")
-	viper.AddConfigPath("$HOME/.config/compass")
-	viper.AddConfigPath("/etc/compass")
+	viper.SetConfigName(filename)
+	viper.AddConfigPath(filepath.Join("$HOME", ".config"))
+	viper.AddConfigPath(filepath.Join("$HOME", ".config", "compass"))
+	viper.AddConfigPath(filepath.Join("etc", "compass"))
 	// Environment variables
 	viper.AutomaticEnv()
-	viper.SetEnvPrefix("compass")
+	viper.SetEnvPrefix(envprefix)
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
-	// Environment variable binding
-	viper.BindEnv(CONFIG_PATH_KEY)
 }
 
 // A ConfigKey is used to lookup configuration values
@@ -41,10 +44,9 @@ func (k ConfigKey) String() string {
 }
 
 // FromFile reads configuration from a file, bind a CLI flag to
-func FromFile() error {
-	path := viper.GetString(CONFIG_PATH_KEY)
-	if path != "" {
-		viper.SetConfigFile(path)
+func Read() error {
+	if Path != "" {
+		viper.SetConfigFile(Path)
 	}
 	return viper.ReadInConfig()
 }

@@ -23,19 +23,21 @@ func main() {
 func needleCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "needle",
-		Short: "Needle is the gRPC server for the compass client.",
+		Short: "Start Needle, the gRPC server for the Compass client.",
 		Run: func(cmd *cobra.Command, _ []string) {
 			os.Exit(startNeedle())
 		},
 	}
 	// Global flags
 	pflags := cmd.PersistentFlags()
-	pflags.StringP("config-file", "c", "", "path to configuration file")
 	pflags.String("log-format", "", "log format [console|json]")
+	pflags.StringVarP(&config.Path, "config", "c", "", "Path to configuration file")
+	// Bind persistent flags
+	config.BindFlag(logger.LogFormatKey, pflags.Lookup("log-format"))
 	// Local Flags
 	flags := cmd.Flags()
 	flags.StringP("listen", "l", "", "server listen address")
-	// Bind flags to config options
+	// Bind local flags to config options
 	config.BindFlag(grpc.ListenAddressConfigKey, flags.Lookup("listen"))
 	// Add sub commands
 	cmd.AddCommand(versionCmd())
@@ -45,7 +47,7 @@ func needleCmd() *cobra.Command {
 // startNeedle starts the needle gRPC server
 // returns os exit code
 func startNeedle() int {
-	config.FromFile()
+	config.Read()
 	logger := logger.New()
 	srv := grpc.NewServer(grpc.WithAddress(grpc.ListenAddress()))
 	addr, errC := srv.Serve()
