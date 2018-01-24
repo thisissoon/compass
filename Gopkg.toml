@@ -1,3 +1,7 @@
+#
+# Constraints
+#
+
 # Cobra for CLI building - does not yet have semantic versioning
 [[constraint]]
   name = "github.com/spf13/cobra"
@@ -17,3 +21,17 @@
 [[constraint]]
   name = "k8s.io/client-go"
   version = "v6.0.0"
+
+# gRPC server / client
+[[constraint]]
+  name = "google.golang.org/grpc"
+  version = "v1.9.2"
+
+#
+# Prune Settings
+#
+
+[prune]
+  non-go = true
+  unused-packages = true
+  go-tests = true
