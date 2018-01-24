@@ -9,9 +9,9 @@ BUILD_VERSION   ?= $(shell head -n 1 VERSION | tr -d "\n")
 BUILD_COMMIT    ?= $(shell git rev-parse HEAD)
 # LDFlags
 LDFLAGS ?= -d
-LDFLAGS += -X compass/config.timestamp=$(BUILD_TIME)
-LDFLAGS += -X compass/config.version=$(BUILD_VERSION)
-LDFLAGS += -X compass/config.commit=$(BUILD_COMMIT)
+LDFLAGS += -X compass/version.timestamp=$(BUILD_TIME)
+LDFLAGS += -X compass/version.version=$(BUILD_VERSION)
+LDFLAGS += -X compass/version.commit=$(BUILD_COMMIT)
 # Go Build Flags
 GOBUILD_FLAGS ?= -tags netgo -installsuffix netgo
 GOBUILD_FLAGS += -installsuffix netgo

@@ -5,7 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 
-	"compass/config"
+	"compass/version"
 
 	"github.com/rs/zerolog"
 )
@@ -13,8 +13,8 @@ import (
 // New returns a new logger setup from configuration
 func New() zerolog.Logger {
 	f := map[string]interface{}{
-		"version": config.Version(),
-		"commit":  config.Commit(),
+		"version": version.Version(),
+		"commit":  version.Commit(),
 	}
 	var w io.Writer = os.Stdout
 	switch LogFormat() {
