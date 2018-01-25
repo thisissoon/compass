@@ -8,7 +8,7 @@ import (
 	"compass/config"
 	"compass/grpc"
 	"compass/logger"
-	"compass/service"
+	"compass/needle"
 	"compass/store/psql"
 
 	"github.com/jmoiron/sqlx"
@@ -61,7 +61,7 @@ func startNeedle() int {
 		return 1
 	}
 	defer db.Close()
-	srv := grpc.NewServer(service.NewManager(psql.NewServiceStore(db)))
+	srv := grpc.NewServer(needle.NewService(psql.New(db)))
 	addr, errC := srv.Serve()
 	log.Debug().Str("address", addr.String()).Msg("gRPC server started")
 	defer srv.Stop()

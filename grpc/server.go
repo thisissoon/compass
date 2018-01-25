@@ -23,8 +23,8 @@ func WithAddress(addr string) Option {
 
 // A Server can create and stop a gRPC server
 type Server struct {
-	addr string                      // address to bind too
-	sm   needle.ServiceManagerServer // service manager
+	addr string                     // address to bind too
+	ns   needle.NeedleServiceServer // needle service service
 
 	lock sync.Mutex // protects below
 	srv  *grpc.Server
@@ -41,7 +41,7 @@ func (s *Server) Serve() (net.Addr, <-chan error) {
 		return nil, (<-chan error)(errC)
 	}
 	s.srv = grpc.NewServer()
-	needle.RegisterServiceManagerServer(s.srv, s.sm)
+	needle.RegisterNeedleServiceServer(s.srv, s.ns)
 	go func() { // Start serving :)
 		errC <- s.srv.Serve(ln)
 	}()
@@ -59,10 +59,10 @@ func (s *Server) Stop() {
 
 // NewServer creates a new gRPC server
 // Use Option functions to override defaults
-func NewServer(sm needle.ServiceManagerServer, opts ...Option) *Server {
+func NewServer(ns needle.NeedleServiceServer, opts ...Option) *Server {
 	s := &Server{
 		addr: ListenAddress(),
-		sm:   sm,
+		ns:   ns,
 	}
 	for _, opt := range opts {
 		opt(s)

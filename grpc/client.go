@@ -13,6 +13,6 @@ func ClientConn(addr string) (*grpc.ClientConn, error) {
 	return grpc.Dial(addr, do...)
 }
 
-func NewServiceManagerClient(cc *grpc.ClientConn) needle.ServiceManagerClient {
-	return needle.NewServiceManagerClient(cc)
+func NewServiceManagerClient(cc *grpc.ClientConn) needle.NeedleServiceClient {
+	return needle.NewNeedleServiceClient(cc)
 }
