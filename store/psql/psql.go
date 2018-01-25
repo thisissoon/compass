@@ -7,6 +7,18 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type Store struct {
+	*ServiceStore
+	*DentryStore
+}
+
+func New(db *sqlx.DB) *Store {
+	return &Store{
+		NewServiceStore(db),
+		NewDentryStore(db),
+	}
+}
+
 // A RowHandler handles struct scanning a sqlx.Row into a destination inerface
 type RowHandler interface {
 	Scan(*sqlx.Row) error

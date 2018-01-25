@@ -20,6 +20,6 @@ type Dentry struct {
 	UpdateDate  time.Time
 	Prefix      string
 	Destination string
-	Priority    string
+	Priority    int32
 	ServiceId   string
 }
