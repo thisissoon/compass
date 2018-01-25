@@ -1,0 +1,8 @@
+[log]
+format = "json"
+
+[grpc]
+listen_address = ":5000"
+
+[psql]
+dsn = "postgres://postgres:postgres@localhost/needle?sslmode=disable"
