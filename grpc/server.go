@@ -62,6 +62,7 @@ func (s *Server) Stop() {
 func NewServer(sm needle.ServiceManagerServer, opts ...Option) *Server {
 	s := &Server{
 		addr: ListenAddress(),
+		sm:   sm,
 	}
 	for _, opt := range opts {
 		opt(s)
