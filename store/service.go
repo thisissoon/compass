@@ -6,6 +6,6 @@ type ServicePutter interface {
 
 type Service struct {
 	LogicalName string
-	Namesapace  string
+	Namespace   string
 	Description string
 }

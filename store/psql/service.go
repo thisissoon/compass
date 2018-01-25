@@ -46,7 +46,7 @@ func upsertService(db sqlx.Queryer, service *store.Service) (*store.Service, err
 		}),
 		UpsertServiceQry,
 		service.LogicalName,
-		service.Namesapace,
+		service.Namespace,
 		service.Description)
 	return svc, err
 }
