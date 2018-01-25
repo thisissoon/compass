@@ -56,8 +56,11 @@ message Dentry {
   // The destination of the matched prefix
   string destination = 6;
 
+  // The dentry namespace or dtab
+  string namespace = 7;
+
   // Prioity of the dentry - affects the ordering within the delegation table
-  int32 priority = 7;
+  int32 priority = 8;
 }
 
 // Request for [PutService](compass.needle.v1.NeedleService.PutService)
