@@ -42,6 +42,11 @@
   name = "github.com/jmoiron/sqlx"
   revision = "05cef0741ade10ca668982355b3f3f0bcf0ff0a8"
 
+# Database migrations
+[[constraint]]
+  name = "github.com/mattes/migrate"
+  version = "v3.0.1"
+
 #
 # Prune Settings
 #

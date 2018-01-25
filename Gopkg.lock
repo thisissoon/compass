@@ -146,6 +146,18 @@
   version = "v1.7.4"
 
 [[projects]]
+  name = "github.com/mattes/migrate"
+  packages = [
+    ".",
+    "database",
+    "database/postgres",
+    "source",
+    "source/go-bindata"
+  ]
+  revision = "035c07716cd373d88456ec4d701402df52584cb4"
+  version = "v3.0.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/mitchellh/mapstructure"
   packages = ["."]
@@ -486,6 +498,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "e36c4b04ffb32c6aa4f2f2146a8867e2feec16a6a74394e4afc338c6f33b2a95"
+  inputs-digest = "73e1cb665d4973ae8bfdc4fe2ccab63ca2b61ae9602810ea16d378fb2a82e363"
   solver-name = "gps-cdcl"
   solver-version = 1
