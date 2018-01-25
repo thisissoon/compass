@@ -8,7 +8,10 @@ import (
 	"compass/config"
 	"compass/grpc"
 	"compass/logger"
+	"compass/service"
+	"compass/store/psql"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/spf13/cobra"
 )
 
@@ -52,7 +55,13 @@ func startNeedle() int {
 		l.Error().Err(err).Msg("error loading configuration")
 	}
 	log := logger.New()
-	srv := grpc.NewServer(grpc.WithAddress(grpc.ListenAddress()))
+	db, err := sqlx.Open("postgres", psql.DSN())
+	if err != nil {
+		log.Debug().Err(err).Msg("unable to connect to database")
+		return 1
+	}
+	defer db.Close()
+	srv := grpc.NewServer(service.NewManager(psql.NewServiceStore(db)))
 	addr, errC := srv.Serve()
 	log.Debug().Str("address", addr.String()).Msg("gRPC server started")
 	defer srv.Stop()
