@@ -8,11 +8,10 @@ import (
 
 	needle "compass/proto/needle/v1"
 
+	"github.com/golang/protobuf/ptypes/timestamp"
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-
-	uuid "github.com/satori/go.uuid"
 )
 
 // Manager implements the needle.ServiceManagerServer interface
@@ -29,7 +28,6 @@ func (m *Manager) PutService(ctx context.Context, req *needle.PutServiceRequest)
 // putService is the underlying logic for handling a gRPC put service request
 func putService(sp store.ServicePutter, s *needle.Service, log zerolog.Logger) (*needle.PutServiceResponse, error) {
 	svc, err := sp.PutService(&store.Service{
-		Id:          uuid.FromStringOrNil(s.GetId()),
 		LogicalName: s.GetLogicalName(),
 		Namespace:   s.GetNamespace(),
 		Description: s.GetDescription(),
@@ -40,6 +38,9 @@ func putService(sp store.ServicePutter, s *needle.Service, log zerolog.Logger) (
 	}
 	return &needle.PutServiceResponse{
 		Service: &needle.Service{
+			Id:          svc.Id.String(),
+			CreateDate:  &timestamp.Timestamp{Seconds: svc.CreateDate.Unix()},
+			UpdateDate:  &timestamp.Timestamp{Seconds: svc.UpdateDate.Unix()},
 			LogicalName: svc.LogicalName,
 			Namespace:   svc.Namespace,
 			Description: svc.Description,

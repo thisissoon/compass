@@ -2,6 +2,8 @@ syntax = "proto3";
 
 package compass.needle.v1;
 
+import "google/protobuf/timestamp.proto";
+
 option go_package = "needle/v1;needle";
 
 // ServiceManager manages services, duh! ;)
@@ -12,27 +14,33 @@ service ServiceManager {
 
 // Request for [PutService](compass.needle.v1.PutService)
 message PutServiceRequest {
-    // Service to be created or updated
-    Service service = 1;
+  // Service to be created or updated
+  Service service = 1;
 }
 
 // Response for [PutService](compass.needle.v1.PutService)
 message PutServiceResponse {
-    // Service crated or updated
-    Service service = 1;
+  // Service crated or updated
+  Service service = 1;
 }
 
 // A Service is a service that compass is managing a namerd dentry for
 message Service {
-    // Id - the primary key - but not used for upserts
-    string id = 1;
+  // Id - the primary key - but not used for upserts
+  string id = 1;
 
-    // The logical name, e.g HTTP/1.1 Host name or HTTP/2 :authority
-    string logical_name = 2;
+  // User created date
+  google.protobuf.Timestamp create_date = 2;
 
-    // The namerd namespace the service should be managed within
-    string namespace = 3;
+  // User updated date
+  google.protobuf.Timestamp update_date = 3;
 
-    // Optional description of the service
-    string description = 4;
+  // The logical name, e.g HTTP/1.1 Host name or HTTP/2 :authority
+  string logical_name = 4;
+
+  // The namerd namespace the service should be managed within
+  string namespace = 5;
+
+  // Optional description of the service
+  string description = 6;
 }

@@ -18,7 +18,7 @@ var UpsertServiceQry = fmt.Sprintf(`
 		"namespace",
 		"description")
 	VALUES ($1,$2,$3)
-	ON CONFLICT ON CONSTRAINT service_tbl_pk DO
+	ON CONFLICT ON CONSTRAINT service_logical_name DO
 	UPDATE SET
 		update_date=timezone('UTC'::text, now()),
 		namespace=excluded.namespace,
