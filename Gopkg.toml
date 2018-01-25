@@ -27,6 +27,11 @@
   name = "google.golang.org/grpc"
   version = "v1.9.2"
 
+# UUIDs
+[[constraint]]
+  name = "github.com/satori/go.uuid"
+  version = "v1.2.0"
+
 # Postgres Database Driver
 [[constraint]]
   name = "github.com/lib/pq"
