@@ -47,19 +47,22 @@ func needleCmd() *cobra.Command {
 // startNeedle starts the needle gRPC server
 // returns os exit code
 func startNeedle() int {
-	config.Read()
-	logger := logger.New()
+	if err := config.Read(); err != nil {
+		l := logger.New()
+		l.Error().Err(err).Msg("error loading configuration")
+	}
+	log := logger.New()
 	srv := grpc.NewServer(grpc.WithAddress(grpc.ListenAddress()))
 	addr, errC := srv.Serve()
-	logger.Debug().Str("address", addr.String()).Msg("gRPC server started")
+	log.Debug().Str("address", addr.String()).Msg("gRPC server started")
 	defer srv.Stop()
 	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	select {
 	case sig := <-sigC:
-		logger.Debug().Str("signal", sig.String()).Msg("recieved OS signal")
+		log.Debug().Str("signal", sig.String()).Msg("recieved OS signal")
 		return 0
 	case err := <-errC:
-		logger.Debug().Err(err).Msg("runtime error")
+		log.Debug().Err(err).Msg("runtime error")
 		return 1
 	}
 }
