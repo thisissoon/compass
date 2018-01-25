@@ -70,3 +70,11 @@ compass route --logical-name frontend --version v1.2.3
 compass route --logical-name frontend --service frontend-v1-2-3
 compass route --logical-name frontend # spawns an interactive ui
 ```
+
+## Development
+
+### Dependencies
+
+`protoc` is required to generate `go` code from `.proto` files.
+
+Download the latest `protoc` release for your OS from https://github.com/google/protobuf/releases and follow the `readme.txt`.

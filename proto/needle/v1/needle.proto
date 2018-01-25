@@ -1,0 +1,35 @@
+syntax = "proto3";
+
+package compass.needle.v1;
+
+option go_package = "needle/v1;needle";
+
+// ServiceManager manages services, duh! ;)
+service ServiceManager {
+  // PutService upserts services to be managed
+  rpc PutService(PutServiceRequest) returns (PutServiceResponse) {}
+}
+
+// Request for [PutService](compass.needle.v1.PutService)
+message PutServiceRequest {
+    // Service to be created or updated
+    Service service = 1;
+}
+
+// Response for [PutService](compass.needle.v1.PutService)
+message PutServiceResponse {
+    // Service crated or updated
+    Service service = 1;
+}
+
+// A Service is a service that compass is managing a namerd dentry for
+message Service {
+    // The logical name, e.g HTTP/1.1 Host name or HTTP/2 :authority
+    string logical_name = 1;
+
+    // The namerd namespace the service should be managed within
+    string namespace = 2;
+
+    // Optional description of the service
+    string description = 3;
+}

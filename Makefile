@@ -27,6 +27,20 @@ ifeq ("$(wildcard $(shell which dep))","")
 endif
 	dep ensure -v
 
+protoc:
+ifeq ("$(wildcard $(shell which protoc))","")
+	go get github.com/golang/protobuf/protoc-gen-go
+endif
+	protoc -I .:/usr/local/include --go_out=plugins=grpc:./proto $(shell find . -type f -name '*.proto')
+
+# Run test suite
+test:
+ifeq ("$(wildcard $(shell which gocov))","")
+	go get github.com/axw/gocov/gocov
+endif
+	ADMINAUTHENTICATOR_LOG_FORMAT=discard \
+		gocov test -v ./... | gocov report
+
 common-build-flags:
 ifeq ($(GOBUILD_VERBOSE),1)
 	$(eval GOBUILD_FLAGS += -v)
@@ -82,11 +96,3 @@ needle-image:
 		--build-arg BUILD_VERSION=$(BUILD_VERSION) \
 		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
 		-t soon/needle:$(BUILD_VERSION) .
-
-# Run test suite
-test:
-ifeq ("$(wildcard $(shell which gocov))","")
-	go get github.com/axw/gocov/gocov
-endif
-	ADMINAUTHENTICATOR_LOG_FORMAT=discard \
-		gocov test -v ./... | gocov report
