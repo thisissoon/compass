@@ -20,6 +20,8 @@ COMPRESS_BINARY ?= 0
 # Verbose build output
 GOBUILD_VERBOSE ?= 0
 
+.PHONY: migrations
+
 # Run dep ensure and prun unneeded dependencies
 ensure:
 ifeq ("$(wildcard $(shell which dep))","")
@@ -27,11 +29,19 @@ ifeq ("$(wildcard $(shell which dep))","")
 endif
 	dep ensure -v
 
+# Compile protobuf to go
 protoc:
 ifeq ("$(wildcard $(shell which protoc))","")
 	go get github.com/golang/protobuf/protoc-gen-go
 endif
 	protoc -I .:/usr/local/include --go_out=plugins=grpc:./proto $(shell find . -type f -name '*.proto')
+
+# Generate migration code
+migrations:
+ifeq ("$(wildcard $(shell which go-bindata))","")
+	go get github.com/jteeuwen/go-bindata/go-bindata
+endif
+	go-bindata -pkg=migrations -prefix=migrations/ -o=store/psql/migrations/migrations.go ./migrations
 
 # Run test suite
 test:

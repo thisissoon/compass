@@ -7,11 +7,13 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// Store embeds the various other stores for a single store interface
 type Store struct {
 	*ServiceStore
 	*DentryStore
 }
 
+// New connects to a new Store
 func New(db *sqlx.DB) *Store {
 	return &Store{
 		NewServiceStore(db),
