@@ -112,6 +112,14 @@
   version = "v1.0"
 
 [[projects]]
+  name = "github.com/jmoiron/sqlx"
+  packages = [
+    ".",
+    "reflectx"
+  ]
+  revision = "05cef0741ade10ca668982355b3f3f0bcf0ff0a8"
+
+[[projects]]
   name = "github.com/json-iterator/go"
   packages = ["."]
   revision = "f7279a603edee96fe7764d3de9c6ff8cf9970994"
@@ -122,6 +130,14 @@
   packages = ["."]
   revision = "59fac5042749a5afb9af70e813da1dd5474f0167"
   version = "1.0.1"
+
+[[projects]]
+  name = "github.com/lib/pq"
+  packages = [
+    ".",
+    "oid"
+  ]
+  revision = "19c8e9ad00952ce0c64489b60e8df88bb16dd514"
 
 [[projects]]
   name = "github.com/magiconair/properties"
@@ -464,6 +480,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "985d8482fdf96425d969036b5a4cd52027531a8ce2f648fc5ac5600df9163858"
+  inputs-digest = "b83cc3eb3cba9911690cfa2117d6f2e72d28d13fb1928e17bca4699f15aabf4d"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -27,6 +27,16 @@
   name = "google.golang.org/grpc"
   version = "v1.9.2"
 
+# Postgres Database Driver
+[[constraint]]
+  name = "github.com/lib/pq"
+  revision = "19c8e9ad00952ce0c64489b60e8df88bb16dd514"
+
+# Extensions for databae/sql
+[[constraint]]
+  name = "github.com/jmoiron/sqlx"
+  revision = "05cef0741ade10ca668982355b3f3f0bcf0ff0a8"
+
 #
 # Prune Settings
 #
