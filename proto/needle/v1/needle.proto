@@ -6,22 +6,13 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "needle/v1;needle";
 
-// ServiceManager manages services, duh! ;)
-service ServiceManager {
+// NeedleService the brains behind compass
+service NeedleService {
   // PutService upserts services to be managed
   rpc PutService(PutServiceRequest) returns (PutServiceResponse) {}
-}
 
-// Request for [PutService](compass.needle.v1.PutService)
-message PutServiceRequest {
-  // Service to be created or updated
-  Service service = 1;
-}
-
-// Response for [PutService](compass.needle.v1.PutService)
-message PutServiceResponse {
-  // Service crated or updated
-  Service service = 1;
+  // PutDentry upserts dentries to be managed
+  rpc PutDentry(PutDentryRequest) returns (PutDentryResponse) {}
 }
 
 // A Service is a service that compass is managing a namerd dentry for
@@ -43,4 +34,52 @@ message Service {
 
   // Optional description of the service
   string description = 6;
+}
+
+// A Dentry is a single Delegation Table Rule
+message Dentry {
+  // Id - the primary key - but not used for upserts
+  string id = 1;
+
+  // Optional description of the service
+  string service_id = 2;
+
+  // User created date
+  google.protobuf.Timestamp create_date = 3;
+
+  // User updated date
+  google.protobuf.Timestamp update_date = 4;
+
+  // The prefix to match on
+  string prefix = 5;
+
+  // The destination of the matched prefix
+  string destination = 6;
+
+  // Prioity of the dentry - affects the ordering within the delegation table
+  int32 priority = 7;
+}
+
+// Request for [PutService](compass.needle.v1.NeedleService.PutService)
+message PutServiceRequest {
+  // Service to be created or updated
+  Service service = 1;
+}
+
+// Response for [PutService](compass.needle.v1.NeedleService.PutService)
+message PutServiceResponse {
+  // Service crated or updated
+  Service service = 1;
+}
+
+// Request for [PutDentry](compass.needle.v1.NeedleService.PutDentry)
+message PutDentryRequest {
+  // Dentry to create or update
+  Dentry dentry = 1;
+}
+
+// Response for [PutDentry](compass.needle.v1.NeedleService.PutDentry)
+message PutDentryResponse {
+  // Dentry crated or updated
+  Dentry dentry = 1;
 }
