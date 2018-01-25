@@ -5,6 +5,8 @@ import (
 	"sync"
 
 	"google.golang.org/grpc"
+
+	needle "compass/proto/needle/v1"
 )
 
 // An Option funtion can override configuration options
@@ -21,7 +23,8 @@ func WithAddress(addr string) Option {
 
 // A Server can create and stop a gRPC server
 type Server struct {
-	addr string // address to bind too
+	addr string                      // address to bind too
+	sm   needle.ServiceManagerServer // service manager
 
 	lock sync.Mutex // protects below
 	srv  *grpc.Server
@@ -38,7 +41,7 @@ func (s *Server) Serve() (net.Addr, <-chan error) {
 		return nil, (<-chan error)(errC)
 	}
 	s.srv = grpc.NewServer()
-	// TODO: add services here
+	needle.RegisterServiceManagerServer(s.srv, s.sm)
 	go func() { // Start serving :)
 		errC <- s.srv.Serve(ln)
 	}()
@@ -56,8 +59,10 @@ func (s *Server) Stop() {
 
 // NewServer creates a new gRPC server
 // Use Option functions to override defaults
-func NewServer(opts ...Option) *Server {
-	s := &Server{}
+func NewServer(sm needle.ServiceManagerServer, opts ...Option) *Server {
+	s := &Server{
+		addr: ListenAddress(),
+	}
 	for _, opt := range opts {
 		opt(s)
 	}
