@@ -9,9 +9,10 @@ CREATE TABLE public.service(
     "create_date" timestamptz NOT NULL DEFAULT timezone('UTC'::text, now()),
     "update_date" timestamptz NOT NULL DEFAULT timezone('UTC'::text, now()),
     "logical_name" varchar(128) NOT NULL,
-    "namesapce" varchar(128) NOT NULL,
+    "dtab" varchar(128) NOT NULL,
+    "namespace" varchar(128) NOT NULL,
     "description" text NOT NULL,
-    CONSTRAINT "pk_service" PRIMARY KEY ("logical_name", "namespace")
+    CONSTRAINT "pk_service" PRIMARY KEY ("logical_name", "dtab")
 ) WITH (OIDS = FALSE);
 
 -- --------------------------

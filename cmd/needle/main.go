@@ -43,21 +43,28 @@ func needleCmd() *cobra.Command {
 	// Bind local flags to config options
 	config.BindFlag(grpc.ListenAddressConfigKey, flags.Lookup("listen"))
 	// Add sub commands
-	cmd.AddCommand(versionCmd())
+	cmd.AddCommand(
+		migrateCmd(),
+		versionCmd())
 	return cmd
+}
+
+// loadConfig loads configuraion
+func loadConfig() {
+	logger := logger.New()
+	if err := config.Read(); err != nil {
+		logger.Error().Err(err).Msg("error loading configuration")
+	}
 }
 
 // startNeedle starts the needle gRPC server
 // returns os exit code
 func startNeedle() int {
-	if err := config.Read(); err != nil {
-		l := logger.New()
-		l.Error().Err(err).Msg("error loading configuration")
-	}
+	loadConfig()
 	log := logger.New()
 	db, err := sqlx.Open("postgres", psql.DSN())
 	if err != nil {
-		log.Debug().Err(err).Msg("unable to connect to database")
+		log.Error().Err(err).Msg("failed to open database connection")
 		return 1
 	}
 	defer db.Close()
