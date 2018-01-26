@@ -1,18 +1,26 @@
 package grpc
 
 import (
+	"time"
+
 	"google.golang.org/grpc"
+
+	"compass/logger"
 
 	needle "compass/proto/needle/v1"
 )
 
-func ClientConn(addr string) (*grpc.ClientConn, error) {
-	do := []grpc.DialOption{
+func NewClient(addr string) (needle.NeedleServiceClient, bool) {
+	log := logger.New()
+	cc, err := grpc.Dial(
+		"localhost:5000",
 		grpc.WithInsecure(),
+		grpc.WithAuthority("compass"),
+		grpc.WithTimeout(time.Second*5),
+	)
+	if err != nil {
+		log.Error().Err(err).Msg("failed to create gRPC connection")
+		return nil, false
 	}
-	return grpc.Dial(addr, do...)
-}
-
-func NewServiceManagerClient(cc *grpc.ClientConn) needle.NeedleServiceClient {
-	return needle.NewNeedleServiceClient(cc)
+	return needle.NewNeedleServiceClient(cc), true
 }

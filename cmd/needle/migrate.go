@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"os"
 
@@ -43,17 +42,13 @@ func migrateUpCmd() *cobra.Command {
 func migrateUp() int {
 	loadConfig()
 	log := logger.New()
-	db, err := sql.Open("postgres", psql.DSN())
-	if err != nil {
-		log.Error().Err(err).Msg("failed to open database connection")
-		return 1
-	}
-	defer db.Close()
-	m, err := psql.NewMigrator(db)
+	log.Debug().Str("dsn", psql.DSN()).Msg("opening database connection")
+	m, err := psql.NewMigrator()
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create database migrator")
 		return 1
 	}
+	defer m.Close()
 	if err := m.Up(); err != nil {
 		log.Error().Err(err).Msg("failed to run database upgrade")
 		return 1
@@ -77,17 +72,12 @@ func migrateDownCmd() *cobra.Command {
 func migrateDown() int {
 	loadConfig()
 	log := logger.New()
-	db, err := sql.Open("postgres", psql.DSN())
-	if err != nil {
-		log.Error().Err(err).Msg("failed to open database connection")
-		return 1
-	}
-	defer db.Close()
-	m, err := psql.NewMigrator(db)
+	m, err := psql.NewMigrator()
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create database migrator")
 		return 1
 	}
+	defer m.Close()
 	if err := m.Down(); err != nil {
 		log.Error().Err(err).Msg("failed to run database downgrade")
 		return 1
@@ -111,17 +101,12 @@ func migrateVersionCmd() *cobra.Command {
 func migrateVersion() int {
 	loadConfig()
 	log := logger.New()
-	db, err := sql.Open("postgres", psql.DSN())
-	if err != nil {
-		log.Error().Err(err).Msg("failed to open database connection")
-		return 1
-	}
-	defer db.Close()
-	m, err := psql.NewMigrator(db)
+	m, err := psql.NewMigrator()
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create database migrator")
 		return 1
 	}
+	defer m.Close()
 	version, dirty, err := m.Version()
 	if err != nil {
 		log.Error().Err(err).Msg("failed to get database migration version")
@@ -147,17 +132,12 @@ func migrateDropCmd() *cobra.Command {
 func migrateDrop() int {
 	loadConfig()
 	log := logger.New()
-	db, err := sql.Open("postgres", psql.DSN())
-	if err != nil {
-		log.Error().Err(err).Msg("failed to open database connection")
-		return 1
-	}
-	defer db.Close()
-	m, err := psql.NewMigrator(db)
+	m, err := psql.NewMigrator()
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create database migrator")
 		return 1
 	}
+	defer m.Close()
 	if err := m.Drop(); err != nil {
 		log.Error().Err(err).Msg("failed to get drop database migrations")
 		return 1

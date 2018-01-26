@@ -26,9 +26,9 @@ func init() {
 	// Config file lookup locations
 	viper.SetConfigType("toml")
 	viper.SetConfigName(filename)
+	viper.AddConfigPath(filepath.Join("etc", "compass"))
 	viper.AddConfigPath(filepath.Join("$HOME", ".config"))
 	viper.AddConfigPath(filepath.Join("$HOME", ".config", "compass"))
-	viper.AddConfigPath(filepath.Join("etc", "compass"))
 	// Environment variables
 	viper.AutomaticEnv()
 	viper.SetEnvPrefix(envprefix)
