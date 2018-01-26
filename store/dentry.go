@@ -18,9 +18,9 @@ type Dentry struct {
 	Id          uuid.UUID
 	CreateDate  time.Time
 	UpdateDate  time.Time
+	Dtab        string
 	Prefix      string
 	Destination string
-	Namespace   string
 	Priority    int32
 	ServiceId   string
 }

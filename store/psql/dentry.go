@@ -15,17 +15,17 @@ const DentryTableName = "dentry"
 var UpsertDentryQry = fmt.Sprintf(`
 	INSERT INTO "%s" (
 		"id",
+		"dtab",
 		"prefix",
 		"destination",
-		"namespace",
 		"priority")
-	VALUES ($1,$2,$3,$4)
+	VALUES ($1,$2,$3,$4,$5)
 	ON CONFLICT ON CONSTRAINT dentry_id DO
 	UPDATE SET
 		update_date=timezone('UTC'::text, now()),
+		dtab=excluded.dtab,
 		prefix=excluded.prefix,
 		destination=excluded.destination,
-		namesapce=excluded.namespace,
 		priority=excluded.priority
 	RETURNING *;`, DentryTableName)
 
@@ -49,9 +49,9 @@ func upsertDentry(db sqlx.Queryer, dentry *store.Dentry) (*store.Dentry, error) 
 		}),
 		UpsertDentryQry,
 		dentry.Id,
+		dentry.Dtab,
 		dentry.Prefix,
 		dentry.Destination,
-		dentry.Namespace,
 		dentry.Priority)
 	return dentry, err
 }

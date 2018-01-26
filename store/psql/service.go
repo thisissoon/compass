@@ -15,12 +15,14 @@ const ServiceTableName = "service"
 var UpsertServiceQry = fmt.Sprintf(`
 	INSERT INTO "%s" (
 		"logical_name",
+		"dtab",
 		"namespace",
 		"description")
-	VALUES ($1,$2,$3)
+	VALUES ($1,$2,$3,$4)
 	ON CONFLICT ON CONSTRAINT service_logical_name DO
 	UPDATE SET
 		update_date=timezone('UTC'::text, now()),
+		dtab=excluded.dtab,
 		namespace=excluded.namespace,
 		description=excluded.description
 	RETURNING *;`, ServiceTableName)
@@ -46,6 +48,7 @@ func upsertService(db sqlx.Queryer, service *store.Service) (*store.Service, err
 		}),
 		UpsertServiceQry,
 		service.LogicalName,
+		service.Dtab,
 		service.Namespace,
 		service.Description)
 	return svc, err

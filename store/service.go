@@ -19,6 +19,7 @@ type Service struct {
 	CreateDate  time.Time
 	UpdateDate  time.Time
 	LogicalName string
+	Dtab        string
 	Namespace   string
 	Description string
 }
