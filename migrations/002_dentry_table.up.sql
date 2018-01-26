@@ -13,7 +13,8 @@ CREATE TABLE public.dentry(
     "prefix" varchar(128) NOT NULL,
     "destination" varchar(128) NOT NULL,
     "priority" int NOT NULL,
-    CONSTRAINT "pk_dentry" PRIMARY KEY ("id")
+    CONSTRAINT "pk_dentry" PRIMARY KEY ("id"),
+    CONSTRAINT "uq_dentry_dtab_prefix" UNIQUE("dtab", "prefix")
 ) WITH (OIDS = FALSE);
 
 -- --------------------------
