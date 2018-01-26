@@ -7,7 +7,7 @@ import (
 )
 
 // Default Data Source Name
-const defaultDsn = "postgres://postgres:postgres@localhost/needle?sslmode=disable"
+const defaultDsn = "postgres://postgres:postgres@localhost:5432/needle?sslmode=disable"
 
 // Configuration keys
 var (

@@ -19,7 +19,7 @@ var UpsertServiceQry = fmt.Sprintf(`
 		"namespace",
 		"description")
 	VALUES ($1,$2,$3,$4)
-	ON CONFLICT ON CONSTRAINT service_logical_name DO
+	ON CONFLICT ON CONSTRAINT uq_service_logical_name_dtab DO
 	UPDATE SET
 		update_date=timezone('UTC'::text, now()),
 		dtab=excluded.dtab,
@@ -35,23 +35,23 @@ type ServiceStore struct {
 // PutService implements the store.ServicePutter and executes
 // an Upsert query to create or update a service
 func (store *ServiceStore) PutService(service *store.Service) (*store.Service, error) {
-	return nil, nil
+	return upsertService(store.db, service)
 }
 
 // upsertService executes an Upsert query to create or update a service
 func upsertService(db sqlx.Queryer, service *store.Service) (*store.Service, error) {
-	var svc *store.Service
+	var svc store.Service
 	err := QueryRowx(
 		db,
 		RowHandlerFunc(func(row *sqlx.Row) error {
-			return row.StructScan(svc)
+			return row.StructScan(&svc)
 		}),
 		UpsertServiceQry,
 		service.LogicalName,
 		service.Dtab,
 		service.Namespace,
 		service.Description)
-	return svc, err
+	return &svc, err
 }
 
 // NewServiceStore returns a new ServiceStore

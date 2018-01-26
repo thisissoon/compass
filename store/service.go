@@ -15,11 +15,11 @@ type ServiceStore interface {
 }
 
 type Service struct {
-	Id          uuid.UUID
-	CreateDate  time.Time
-	UpdateDate  time.Time
-	LogicalName string
-	Dtab        string
-	Namespace   string
-	Description string
+	Id          uuid.UUID `db:"id"`
+	CreateDate  time.Time `db:"create_date"`
+	UpdateDate  time.Time `db:"update_date"`
+	LogicalName string    `db:"logical_name"`
+	Dtab        string    `db:"dtab"`
+	Namespace   string    `db:"namespace"`
+	Description string    `db:"description"`
 }

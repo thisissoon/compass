@@ -1,17 +1,18 @@
 package psql
 
 import (
-	"database/sql"
 	"strings"
 
 	"compass/logger"
 	"compass/store/psql/migrations"
 
 	"github.com/mattes/migrate"
-	"github.com/mattes/migrate/database/postgres"
 	"github.com/rs/zerolog"
 
 	bindata "github.com/mattes/migrate/source/go-bindata"
+
+	// postgres driver
+	_ "github.com/mattes/migrate/database/postgres"
 )
 
 // migrateLogger is used to log database migrations
@@ -30,7 +31,7 @@ func (l *MigrateLogger) Verbose() bool {
 }
 
 // Migrate runs database migrat
-func NewMigrator(db *sql.DB) (*migrate.Migrate, error) {
+func NewMigrator() (*migrate.Migrate, error) {
 	log := logger.New()
 	// Get migration files from go-bindata codegen
 	resource := bindata.Resource(migrations.AssetNames(),
@@ -43,13 +44,8 @@ func NewMigrator(db *sql.DB) (*migrate.Migrate, error) {
 	if err != nil {
 		return nil, err
 	}
-	// Get database driver from connection
-	driver, err := postgres.WithInstance(db, &postgres.Config{})
-	if err != nil {
-		return nil, err
-	}
 	// Create migrator using our data source and db driver
-	m, err := migrate.NewWithInstance("go-bindata", source, "postgres", driver)
+	m, err := migrate.NewWithSourceInstance("go-bindata", source, DSN())
 	if err != nil {
 		return nil, err
 	}

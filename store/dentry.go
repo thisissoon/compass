@@ -15,12 +15,12 @@ type DentryStore interface {
 }
 
 type Dentry struct {
-	Id          uuid.UUID
-	CreateDate  time.Time
-	UpdateDate  time.Time
-	Dtab        string
-	Prefix      string
-	Destination string
-	Priority    int32
-	ServiceId   string
+	Id          uuid.UUID `db:"id"`
+	CreateDate  time.Time `db:"create_date"`
+	UpdateDate  time.Time `db:"update_date"`
+	Dtab        string    `db:"dtab"`
+	Prefix      string    `db:"prefix"`
+	Destination string    `db:"destination"`
+	Priority    int32     `db:"priority"`
+	ServiceId   string    `db:"service_id"`
 }

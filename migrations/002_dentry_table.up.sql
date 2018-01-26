@@ -3,11 +3,6 @@
  */
 
 -- ----------------------------
---  Ensure uuid-ossp is enabled
--- ----------------------------
-CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
-
--- ----------------------------
 --  Table structure for dentry
 -- ----------------------------
 CREATE TABLE public.dentry(
