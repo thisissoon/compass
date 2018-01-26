@@ -31,7 +31,7 @@ endif
 
 # Compile protobuf to go
 protoc:
-ifeq ("$(wildcard $(shell which protoc))","")
+ifeq ("$(wildcard $(shell which protoc-gen-go))","")
 	go get github.com/golang/protobuf/protoc-gen-go
 endif
 	protoc -I .:/usr/local/include --go_out=plugins=grpc:./proto $(shell find . -type f -name '*.proto')
