@@ -9,6 +9,12 @@ import (
 	"path"
 )
 
+type Dtab string
+
+func (d Dtab) String() string {
+	return string(d)
+}
+
 // Dentries represents one or more Dentry
 // Delegation tables are made up of one or mor Dentries
 type Dentries []Dentry
