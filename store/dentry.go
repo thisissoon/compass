@@ -10,8 +10,13 @@ type DentryPutter interface {
 	PutDentry(*Dentry) (*Dentry, error)
 }
 
+type DentryLister interface {
+	DentryList(dtab string) ([]Dentry, error)
+}
+
 type DentryStore interface {
 	DentryPutter
+	DentryLister
 }
 
 type Dentry struct {

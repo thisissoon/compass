@@ -54,6 +54,10 @@ func upsertDentry(db sqlx.Queryer, dentry *store.Dentry) (*store.Dentry, error) 
 	return dentry, err
 }
 
+func (store *DentryStore) DentryList(dtab string) ([]store.Dentry, error) {
+	return nil, nil
+}
+
 // NewDentryStore returns a new DentryStore
 func NewDentryStore(db *sqlx.DB) *DentryStore {
 	return &DentryStore{
