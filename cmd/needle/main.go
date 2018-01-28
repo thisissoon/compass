@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"os"
 	"os/signal"
 	"syscall"
@@ -63,6 +64,7 @@ func loadConfig() {
 // returns os exit code
 func startNeedle() int {
 	loadConfig()
+	ctx, cancel := context.WithCancel(context.Background())
 	log := logger.New()
 	db, err := sqlx.Open("postgres", psql.DSN())
 	if err != nil {
@@ -70,15 +72,14 @@ func startNeedle() int {
 		return 1
 	}
 	defer db.Close()
-
-	syncer := sync.New(namerd.New())
-	go syncer.Start()
-	defer syncer.Stop()
-
-	srv := grpc.NewServer(needle.NewService(psql.New(db, syncer)))
+	store := psql.New(db)
+	syncer := sync.New(namerd.New(), store, store)
+	go syncer.Start(ctx)
+	srv := grpc.NewServer(needle.NewService(store))
 	errC := srv.Serve()
 	defer srv.Stop()
 	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer cancel()
 	select {
 	case sig := <-sigC:
 		log.Debug().Str("signal", sig.String()).Msg("recieved OS signal")

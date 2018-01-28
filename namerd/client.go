@@ -2,12 +2,17 @@ package namerd
 
 import (
 	"bytes"
+	"compass/logger"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
 	"path"
 )
+
+type DentriesUpdator interface {
+	UpdateDentries(dtab Dtab, dentries Dentries) error
+}
 
 type Dtab string
 
@@ -91,13 +96,15 @@ func (c *Client) Dentries(dtab string) (Dentries, error) {
 }
 
 // UpdateDentries updates a delegation tables dentries
-func (c *Client) UpdateDentries(dtab string, dentries Dentries) error {
+func (c *Client) UpdateDentries(dtab Dtab, dentries Dentries) error {
+	log := logger.New()
+	log.Debug().Str("dtab", dtab.String()).Interface("dentries", dentries).Msg("update dtav")
 	var body = new(bytes.Buffer)
 	enc := json.NewEncoder(body)
 	if err := enc.Encode(dentries); err != nil {
 		return err
 	}
-	url := c.url("api", "1", "dtabs", dtab)
+	url := c.url("api", "1", "dtabs", dtab.String())
 	req, err := http.NewRequest(http.MethodPut, url.String(), body)
 	if err != nil {
 		return err
@@ -110,6 +117,7 @@ func (c *Client) UpdateDentries(dtab string, dentries Dentries) error {
 	defer rsp.Body.Close()
 	switch rsp.StatusCode {
 	case http.StatusNoContent:
+		log.Debug().Int("code", rsp.StatusCode).Msg("updated delegation table")
 		return nil
 	default:
 		return fmt.Errorf("unexpected PUT response code: %s", rsp.StatusCode)
@@ -120,7 +128,7 @@ func (c *Client) UpdateDentries(dtab string, dentries Dentries) error {
 // default configuration options
 func New(opts ...Option) *Client {
 	c := &Client{
-		host:   "localhost:4180",
+		host:   "127.0.0.1:4180",
 		scheme: "http",
 		client: http.DefaultClient,
 	}

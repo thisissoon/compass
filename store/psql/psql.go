@@ -2,8 +2,6 @@ package psql
 
 // postgresql driver
 import (
-	"compass/sync"
-
 	"github.com/jmoiron/sqlx"
 
 	_ "github.com/lib/pq"
@@ -16,10 +14,10 @@ type Store struct {
 }
 
 // New connects to a new Store
-func New(db *sqlx.DB, sync *sync.Sync) *Store {
+func New(db *sqlx.DB) *Store {
 	return &Store{
 		NewServiceStore(db),
-		NewDentryStore(db, sync),
+		NewDentryStore(db),
 	}
 }
 

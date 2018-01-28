@@ -1,62 +1,64 @@
 package sync
 
 import (
-	"sync"
+	"context"
 
 	"compass/logger"
 	"compass/namerd"
+	"compass/store"
 
 	"github.com/rs/zerolog"
 )
 
-type Syncer interface {
-	Sync(dtab namerd.Dtab)
+// A DtabUpdatePublisher publishes delegation table names to a channel
+// when the should be synced with namerd
+type DtabUpdatePublisher interface {
+	DtabUpdates() <-chan namerd.Dtab
 }
 
 type Sync struct {
-	client *namerd.Client
-	log    zerolog.Logger
-	// channels
-	syncC chan namerd.Dtab
-	stopC chan bool
-	// Wait Group
-	wg sync.WaitGroup
+	namerd    *namerd.Client
+	store     store.DentriesByDtabSelector
+	publisher DtabUpdatePublisher
+	log       zerolog.Logger
 }
 
-func (s *Sync) Start() {
-	s.wg.Add(1)
-	defer s.wg.Done()
+func (s *Sync) Start(ctx context.Context) {
 	s.log.Debug().Msg("starting dtab sync loop")
 	for {
 		select {
-		case <-s.stopC:
+		case <-ctx.Done():
+			s.log.Debug().Msg("stopped dtab sync loop")
 			return
-		case dtab := <-s.syncC:
+		case dtab := <-s.publisher.DtabUpdates():
 			s.log.Debug().Str("dtab", dtab.String()).Msg("sync dtab")
+			if err := syncDtab(s.store, s.namerd, dtab); err != nil {
+				s.log.Error().Err(err).Msg("error syncing dtab dentries")
+			}
 		}
 	}
 }
 
-func (s *Sync) Sync(d namerd.Dtab) {
-	select {
-	case <-s.stopC:
-		return
-	default:
-		s.syncC <- d
-	}
-}
-
-func (s *Sync) Stop() {
-	defer s.log.Debug().Msg("stopped syncing dtabs")
-	close(s.stopC)
-	s.wg.Wait()
-}
-
-func New(nc *namerd.Client) *Sync {
+func New(n *namerd.Client, s store.DentriesByDtabSelector, p DtabUpdatePublisher) *Sync {
 	return &Sync{
-		client: nc,
-		log:    logger.New(),
-		syncC:  make(chan namerd.Dtab),
-		stopC:  make(chan bool),
+		namerd:    n,
+		store:     s,
+		publisher: p,
+		log:       logger.New(),
 	}
+}
+
+func syncDtab(s store.DentriesByDtabSelector, nd namerd.DentriesUpdator, dtab namerd.Dtab) error {
+	dC, err := s.DentriesByDtab(dtab.String())
+	if err != nil {
+		return err
+	}
+	var dentries namerd.Dentries
+	for dentry := range dC {
+		dentries = append(dentries, namerd.Dentry{
+			Prefix: dentry.Prefix,
+			Dst:    dentry.Destination,
+		})
+	}
+	return nd.UpdateDentries(dtab, dentries)
 }
