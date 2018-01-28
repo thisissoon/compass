@@ -15,7 +15,7 @@ var (
 func init() {
 	// Set defaults
 	viper.SetDefault(ListenAddressConfigKey.String(), ":5000")
-	viper.SetDefault(ClientAddressKey.String(), "localhosts:5000")
+	viper.SetDefault(ClientAddressKey.String(), "localhost:5000")
 	// Bind environment variables
 	viper.BindEnv(ListenAddressConfigKey.String())
 	viper.BindEnv(ClientAddressKey.String())

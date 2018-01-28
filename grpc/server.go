@@ -6,6 +6,7 @@ import (
 
 	"google.golang.org/grpc"
 
+	"compass/logger"
 	needle "compass/proto/needle/v1"
 )
 
@@ -31,21 +32,23 @@ type Server struct {
 }
 
 // Start starts serving the gRPC server
-func (s *Server) Serve() (net.Addr, <-chan error) {
+func (s *Server) Serve() <-chan error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
+	log := logger.New()
 	errC := make(chan error, 1)
 	ln, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		errC <- err
-		return nil, (<-chan error)(errC)
+		return (<-chan error)(errC)
 	}
 	s.srv = grpc.NewServer()
 	needle.RegisterNeedleServiceServer(s.srv, s.ns)
 	go func() { // Start serving :)
+		log.Debug().Str("address", ln.Addr().String()).Msg("gRPC server started")
 		errC <- s.srv.Serve(ln)
 	}()
-	return ln.Addr(), (<-chan error)(errC)
+	return (<-chan error)(errC)
 }
 
 // Stop gracefully stops the grpc server

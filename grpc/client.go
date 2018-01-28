@@ -12,10 +12,11 @@ import (
 
 func NewClient(addr string) (needle.NeedleServiceClient, bool) {
 	log := logger.New()
+	log.Debug().Str("address", addr).Msg("connecting to gRPC server")
 	cc, err := grpc.Dial(
-		"localhost:5000",
+		addr,
 		grpc.WithInsecure(),
-		grpc.WithAuthority("compass"),
+		grpc.WithBlock(),
 		grpc.WithTimeout(time.Second*5),
 	)
 	if err != nil {

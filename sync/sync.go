@@ -30,10 +30,8 @@ func (s *Sync) Start() {
 	for {
 		select {
 		case <-s.stopC:
-			// TODO: exit - closing
 			return
 		case dtab := <-s.syncC:
-			// TODO: sync
 			s.log.Debug().Str("dtab", dtab.String()).Msg("sync dtab")
 		}
 	}
@@ -42,7 +40,6 @@ func (s *Sync) Start() {
 func (s *Sync) Sync(d namerd.Dtab) {
 	select {
 	case <-s.stopC:
-		// TODO: log
 		return
 	default:
 		s.syncC <- d

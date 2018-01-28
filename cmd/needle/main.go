@@ -75,9 +75,8 @@ func startNeedle() int {
 	go syncer.Start()
 	defer syncer.Stop()
 
-	srv := grpc.NewServer(needle.NewService(psql.New(db)))
-	addr, errC := srv.Serve()
-	log.Debug().Str("address", addr.String()).Msg("gRPC server started")
+	srv := grpc.NewServer(needle.NewService(psql.New(db, syncer)))
+	errC := srv.Serve()
 	defer srv.Stop()
 	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	select {
