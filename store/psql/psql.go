@@ -7,6 +7,11 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type QueryExecer interface {
+	sqlx.Queryer
+	sqlx.Execer
+}
+
 // Store embeds the various other stores for a single store interface
 type Store struct {
 	*ServiceStore

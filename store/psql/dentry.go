@@ -37,6 +37,11 @@ var DentryListByDtab = fmt.Sprintf(`
 	WHERE dtab = $1
 	ORDER BY priority ASC`, DentryTableName)
 
+var SelectDentryById = fmt.Sprintf(`
+	SELECT *
+	FROM public.%s
+	WHERE id=$1`, DentryTableName)
+
 var DeleteDentryByIdQry = fmt.Sprintf(`
 	DELETE
 	FROM public.%s
@@ -113,29 +118,40 @@ func dentriesByDtab(db sqlx.Queryer, dtab string) (<-chan *store.Dentry, error) 
 
 // DeleteDentryByPrefix deletes a dentry by it's prefix in a specified dtab
 func (store *DentryStore) DeleteDentryByPrefix(dtab, prefix string) (int64, error) {
-	return deleteDentryByPrefix(store.db, dtab, prefix)
+	return deleteDentryByPrefix(store.db, dtab, prefix, store.dtabUpdatesC)
 }
 
 // deleteDentryByPrefix executes a quert to delete a dentry within a specified dtab
 // by dentry prefix
-func deleteDentryByPrefix(db sqlx.Execer, dtab, prefix string) (int64, error) {
+func deleteDentryByPrefix(db sqlx.Execer, dtab, prefix string, C chan namerd.Dtab) (int64, error) {
 	res, err := db.Exec(DeleteDentryByPrefixQry, dtab, prefix)
 	if err != nil {
 		return 0, err
+	}
+	if err == nil && C != nil {
+		C <- namerd.Dtab(dtab)
 	}
 	return res.RowsAffected()
 }
 
 // DeleteDentryById deletes a dentry by it's UUID
 func (store *DentryStore) DeleteDentryById(id uuid.UUID) (int64, error) {
-	return deleteDentryById(store.db, id)
+	return deleteDentryById(store.db, id, store.dtabUpdatesC)
 }
 
 // deleteDentryById executes a query to delete a dentry by it's UUID
-func deleteDentryById(db sqlx.Execer, id uuid.UUID) (int64, error) {
+func deleteDentryById(db QueryExecer, id uuid.UUID, C chan namerd.Dtab) (int64, error) {
+	var dentry store.Dentry
+	row := db.QueryRowx(SelectDentryById, id)
+	if err := row.StructScan(&dentry); err != nil {
+		return 0, err
+	}
 	res, err := db.Exec(DeleteDentryByIdQry, id)
 	if err != nil {
 		return 0, err
+	}
+	if err == nil && C != nil {
+		C <- namerd.Dtab(dentry.Dtab)
 	}
 	return res.RowsAffected()
 }
