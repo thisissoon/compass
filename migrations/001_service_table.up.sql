@@ -19,7 +19,7 @@ CREATE TABLE public.service(
     "namespace" varchar(128) NOT NULL,
     "description" text NOT NULL,
     CONSTRAINT "pk_service" PRIMARY KEY ("id"),
-    CONSTRAINT "uq_service_logical_name_dtab" UNIQUE("logical_name", "dtab")
+    CONSTRAINT "uq_service_logical_name" UNIQUE("logical_name")
 ) WITH (OIDS = FALSE);
 
 -- --------------------------
