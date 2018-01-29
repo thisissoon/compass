@@ -33,14 +33,11 @@ message Service {
   // The logical name, e.g HTTP/1.1 Host name or HTTP/2 :authority
   string logical_name = 4;
 
-  // The namerd dtab (namespace) the service should be managed within
-  string dtab = 5;
-
   // The kubernetets namespace the app runs in
-  string namespace = 6;
+  string namespace = 5;
 
   // Optional description of the service
-  string description = 7;
+  string description = 6;
 }
 
 // A Dentry is a single Delegation Table Rule

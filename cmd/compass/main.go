@@ -61,7 +61,6 @@ func manageCmd() *cobra.Command {
 	}
 	cmd.Flags().StringVarP(&logicalName, "logical-name", "l", "", "Service logical name.")
 	cmd.Flags().StringVarP(&namespace, "namespace", "n", "", "Kubernetes Namespace the service runs in.")
-	cmd.Flags().StringVarP(&dtab, "dtab", "d", "", "Named delegation table name to place the dentry.")
 	cmd.Flags().StringVarP(&description, "description", "D", "", "Optional service description.")
 	return cmd
 }
@@ -78,7 +77,6 @@ func putService(ln, ns, dt, dsc string) int {
 		&needle.PutServiceRequest{
 			Service: &needle.Service{
 				LogicalName: ln,
-				Dtab:        dt,
 				Namespace:   ns,
 				Description: dsc,
 			},

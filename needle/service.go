@@ -31,7 +31,6 @@ func (s *Service) PutService(ctx context.Context, req *needle.PutServiceRequest)
 func putService(sp store.ServicePutter, s *needle.Service, log zerolog.Logger) (*needle.PutServiceResponse, error) {
 	svc, err := sp.PutService(&store.Service{
 		LogicalName: s.GetLogicalName(),
-		Dtab:        s.GetDtab(),
 		Namespace:   s.GetNamespace(),
 		Description: s.GetDescription(),
 	})
@@ -45,7 +44,6 @@ func putService(sp store.ServicePutter, s *needle.Service, log zerolog.Logger) (
 			CreateDate:  &timestamp.Timestamp{Seconds: svc.CreateDate.Unix()},
 			UpdateDate:  &timestamp.Timestamp{Seconds: svc.UpdateDate.Unix()},
 			LogicalName: svc.LogicalName,
-			Dtab:        svc.Dtab,
 			Namespace:   svc.Namespace,
 			Description: svc.Description,
 		},

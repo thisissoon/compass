@@ -24,7 +24,6 @@ type Service struct {
 	CreateDate  time.Time `db:"create_date"`
 	UpdateDate  time.Time `db:"update_date"`
 	LogicalName string    `db:"logical_name"`
-	Dtab        string    `db:"dtab"`
 	Namespace   string    `db:"namespace"`
 	Description string    `db:"description"`
 }
