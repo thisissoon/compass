@@ -10,8 +10,13 @@ type ServicePutter interface {
 	PutService(*Service) (*Service, error)
 }
 
+type ServiceSelector interface {
+	GetByLogicalName(logicalName string) (*Service, error)
+}
+
 type ServiceStore interface {
 	ServicePutter
+	ServiceSelector
 }
 
 type Service struct {
