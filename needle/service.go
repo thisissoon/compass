@@ -98,6 +98,38 @@ func putDentry(sp store.DentryPutter, d *needle.Dentry, log zerolog.Logger) (*ne
 	}, nil
 }
 
+// DeleteDentryById deletes a dentry by Id
+func (s *Service) DeleteDentryById(ctx context.Context, req *needle.DeleteDentryByIdRequest) (*needle.DeleteDentryByIdResponse, error) {
+	return deleteDentryById(s.store, req.GetId())
+}
+
+// deleteDentryById deletes a dentry by Id
+func deleteDentryById(db store.DentryByIdDeletor, id string) (*needle.DeleteDentryByIdResponse, error) {
+	affected, err := db.DeleteDentryById(uuid.FromStringOrNil(id))
+	if err != nil {
+		return nil, err
+	}
+	return &needle.DeleteDentryByIdResponse{
+		Deleted: (affected > 0),
+	}, nil
+}
+
+// DeleteDentryByPrefix deletes dentry by prefix
+func (s *Service) DeleteDentryByPrefix(ctx context.Context, req *needle.DeleteDentryByPrefixRequest) (*needle.DeleteDentryByPrefixResponse, error) {
+	return deleteDentryByPrefix(s.store, req.GetDtab(), req.GetPrefix())
+}
+
+// deleteDentryByPrefix deletes dentry by prefix
+func deleteDentryByPrefix(db store.DentryByPrefixDeletor, dtab, prefix string) (*needle.DeleteDentryByPrefixResponse, error) {
+	affected, err := db.DeleteDentryByPrefix(dtab, prefix)
+	if err != nil {
+		return nil, err
+	}
+	return &needle.DeleteDentryByPrefixResponse{
+		Deleted: (affected > 0),
+	}, nil
+}
+
 // RouteToVersion routes a service to a specified version
 func (s *Service) RouteToVersion(ctx context.Context, req *needle.RouteToVersionRequest) (*needle.RouteToVersionResponse, error) {
 	return routeToVersion(s.store, s.k8s, req.GetLogicalName(), req.GetVersion())
