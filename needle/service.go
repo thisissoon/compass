@@ -140,6 +140,7 @@ func (s *Service) RouteToVersion(ctx context.Context, req *needle.RouteToVersion
 // If a valid service is found with the required annotations then a dentry is
 // upserted and a dtab sync triggered to update the namerd dtab for the service
 func routeToVersion(s ServiceSelectorDentryPutter, sl k8s.ServiceLister, ln, ver string) (*needle.RouteToVersionResponse, error) {
+	log := logger.New()
 	// Get service by it's logical name
 	svc, err := s.GetByLogicalName(ln)
 	if err != nil {
@@ -160,6 +161,7 @@ func routeToVersion(s ServiceSelectorDentryPutter, sl k8s.ServiceLister, ln, ver
 		return nil, fmt.Errorf("expected 1 kubernetes service, found: %d", len(kServices))
 	}
 	ks := kServices[0]
+	log.Debug().Interface("annotations", ks.Annotations).Str("name", ks.GetName()).Msg("found kubernetets service")
 	// Lookup the dtab annotation so we know what dtab the dentry is managed within
 	dtab, ok := ks.Annotations[DtabAnnotation]
 	if !ok {
@@ -177,7 +179,7 @@ func routeToVersion(s ServiceSelectorDentryPutter, sl k8s.ServiceLister, ln, ver
 	}
 	// Lookup priority annotation so we we can place the dentry in the appropriate place in teh dtab
 	priorityStr, ok := ks.Annotations[DentryPriorityAnnotation]
-	if ok {
+	if !ok {
 		return nil, fmt.Errorf("missing required annotation: %s", DentryPriorityAnnotation)
 	}
 	priority, err := strconv.Atoi(priorityStr)
