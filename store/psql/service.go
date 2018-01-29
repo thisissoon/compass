@@ -27,6 +27,11 @@ var UpsertServiceQry = fmt.Sprintf(`
 		description=excluded.description
 	RETURNING *;`, ServiceTableName)
 
+var GetServiceByLogicalNameQry = fmt.Sprintf(`
+	SELECT *
+	FROM "%s"
+	WHERE logical_name = $1`, ServiceTableName)
+
 // ServiceStore handles CRUD opperations for services in psql
 type ServiceStore struct {
 	db *sqlx.DB
@@ -51,6 +56,25 @@ func upsertService(db sqlx.Queryer, service *store.Service) (*store.Service, err
 		service.Dtab,
 		service.Namespace,
 		service.Description)
+	return &svc, err
+}
+
+// GetByLogicalName returns a service by its unique logical name
+func (store *ServiceStore) GetByLogicalName(ln string) (*store.Service, error) {
+	return getByLogicalName(store.db, ln)
+}
+
+// getByLogicalName executes a query to return a service by it's
+// unique logical name
+func getByLogicalName(db sqlx.Queryer, ln string) (*store.Service, error) {
+	var svc store.Service
+	err := QueryRowx(
+		db,
+		RowHandlerFunc(func(row *sqlx.Row) error {
+			return row.StructScan(&svc)
+		}),
+		GetServiceByLogicalNameQry,
+		ln)
 	return &svc, err
 }
 
