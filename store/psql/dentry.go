@@ -8,6 +8,7 @@ import (
 	"compass/store"
 
 	"github.com/jmoiron/sqlx"
+	uuid "github.com/satori/go.uuid"
 )
 
 // Dentry table name
@@ -35,6 +36,18 @@ var DentryListByDtab = fmt.Sprintf(`
 	FROM public.%s
 	WHERE dtab = $1
 	ORDER BY priority ASC`, DentryTableName)
+
+var DeleteDentryByIdQry = fmt.Sprintf(`
+	DELETE
+	FROM public.%s
+	WHERE id=$1`, DentryTableName)
+
+var DeleteDentryByPrefixQry = fmt.Sprintf(`
+	DELETE
+	FROM public.%s
+	WHERE
+		dtab=$1
+		prefix=$2`, DentryTableName)
 
 // DentryStore manages dentry CRUD ops
 type DentryStore struct {
@@ -96,6 +109,35 @@ func dentriesByDtab(db sqlx.Queryer, dtab string) (<-chan *store.Dentry, error) 
 		}
 	}()
 	return (<-chan *store.Dentry)(C), nil
+}
+
+// DeleteDentryByPrefix deletes a dentry by it's prefix in a specified dtab
+func (store *DentryStore) DeleteDentryByPrefix(dtab, prefix string) (int64, error) {
+	return deleteDentryByPrefix(store.db, dtab, prefix)
+}
+
+// deleteDentryByPrefix executes a quert to delete a dentry within a specified dtab
+// by dentry prefix
+func deleteDentryByPrefix(db sqlx.Execer, dtab, prefix string) (int64, error) {
+	res, err := db.Exec(DeleteDentryByPrefixQry, dtab, prefix)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
+}
+
+// DeleteDentryById deletes a dentry by it's UUID
+func (store *DentryStore) DeleteDentryById(id uuid.UUID) (int64, error) {
+	return deleteDentryById(store.db, id)
+}
+
+// deleteDentryById executes a query to delete a dentry by it's UUID
+func deleteDentryById(db sqlx.Execer, id uuid.UUID) (int64, error) {
+	res, err := db.Exec(DeleteDentryByIdQry, id)
+	if err != nil {
+		return 0, err
+	}
+	return res.RowsAffected()
 }
 
 // NewDentryStore returns a new DentryStore

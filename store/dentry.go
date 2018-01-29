@@ -6,17 +6,29 @@ import (
 	uuid "github.com/satori/go.uuid"
 )
 
-type DentryPutter interface {
-	PutDentry(*Dentry) (*Dentry, error)
-}
-
-type DentriesByDtabSelector interface {
-	DentriesByDtab(dtab string) (<-chan *Dentry, error)
-}
+type (
+	DentryPutter interface {
+		PutDentry(*Dentry) (*Dentry, error)
+	}
+	DentriesByDtabSelector interface {
+		DentriesByDtab(dtab string) (<-chan *Dentry, error)
+	}
+	DentryByIdDeletor interface {
+		DeleteDentryById(id uuid.UUID) (int64, error)
+	}
+	DentryByPrefixDeletor interface {
+		DeleteDentryByPrefix(dtab, prefix string) (int64, error)
+	}
+	DentryDeletor interface {
+		DentryByIdDeletor
+		DentryByPrefixDeletor
+	}
+)
 
 type DentryStore interface {
 	DentryPutter
 	DentriesByDtabSelector
+	DentryDeletor
 }
 
 type Dentry struct {
