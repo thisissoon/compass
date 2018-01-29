@@ -98,7 +98,7 @@ func dentryCmd() *cobra.Command {
 			cmd.Help()
 		},
 	}
-	cmd.AddCommand(dentryPutCmd())
+	cmd.AddCommand(dentryPutCmd(), deleteDentryCmd())
 	return cmd
 }
 
@@ -146,6 +146,84 @@ func putDentry(dt, p, dst string, pr int32) int {
 	if err != nil {
 		log.Error().Err(err).Msg("failed to put dentry")
 		fmt.Println("failed to create / update dentry")
+		return 1
+	}
+	return 0
+}
+
+func deleteDentryCmd() *cobra.Command {
+	var (
+		id     string
+		dtab   string
+		prefix string
+	)
+	cmd := &cobra.Command{
+		Use:   "delete",
+		Short: "Delete dentry by Id or Dtab & Prefix",
+		Run: func(cmd *cobra.Command, _ []string) {
+			if id != "" {
+				os.Exit(deleteDentryById(id))
+			}
+			if dtab != "" && prefix != "" {
+				os.Exit(deleteDentryByPrefix(dtab, prefix))
+			}
+			cmd.Help()
+		},
+	}
+	cmd.Flags().StringVar(&id, "id", "", "Dentry ID in UUIDv4 format.")
+	cmd.Flags().StringVarP(&dtab, "dtab", "d", "", "Delegation table the dentry is in, must also provide --prefix/-p.")
+	cmd.Flags().StringVarP(&prefix, "prefix", "p", "", "Dentry prefix, must also provide --dtab/-d")
+	return cmd
+}
+
+func deleteDentryById(id string) int {
+	config.Read()
+	log := logger.New()
+	client, ok := grpc.NewClient(grpc.ClientAddress())
+	if !ok {
+		return 1
+	}
+	rsp, err := client.DeleteDentryById(
+		context.Background(),
+		&needle.DeleteDentryByIdRequest{
+			Id: id,
+		})
+	if err != nil {
+		log.Error().Err(err).Msg("unable to delete dentry")
+		fmt.Println("Could not delete dentry")
+		return 1
+	}
+	if rsp.GetDeleted() {
+		fmt.Println("Dentry was deleted")
+	} else {
+		fmt.Println("Dentry was not deleted, does it exist?")
+		return 1
+	}
+	return 0
+}
+
+func deleteDentryByPrefix(dtab, prefix string) int {
+	config.Read()
+	log := logger.New()
+	client, ok := grpc.NewClient(grpc.ClientAddress())
+	if !ok {
+		return 1
+	}
+	rsp, err := client.DeleteDentryByPrefix(
+		context.Background(),
+		&needle.DeleteDentryByPrefixRequest{
+			Dtab:   dtab,
+			Prefix: prefix,
+		})
+	if err != nil {
+		log.Error().Err(err).Msg("unable to delete dentry")
+		fmt.Println("Could not delete dentry")
+		return 1
+	}
+	if rsp.GetDeleted() {
+		fmt.Println("Dentry was deleted")
+	} else {
+		fmt.Println("Dentry was not deleted, does it exist?")
 		return 1
 	}
 	return 0
