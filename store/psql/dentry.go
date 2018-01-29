@@ -52,7 +52,7 @@ var DeleteDentryByPrefixQry = fmt.Sprintf(`
 	FROM public.%s
 	WHERE
 		dtab=$1
-		prefix=$2`, DentryTableName)
+		AND prefix=$2`, DentryTableName)
 
 // DentryStore manages dentry CRUD ops
 type DentryStore struct {
