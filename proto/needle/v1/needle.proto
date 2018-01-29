@@ -14,6 +14,12 @@ service NeedleService {
   // PutDentry upserts dentries to be managed
   rpc PutDentry(PutDentryRequest) returns (PutDentryResponse) {}
 
+  // DeleteDentryById deletes a dentry by it's UUID
+  rpc DeleteDentryById(DeleteDentryByIdRequest) returns (DeleteDentryByIdResponse) {}
+
+  // DeleteDentryByPrefix deletes a dentry by prefix within a dtab
+  rpc DeleteDentryByPrefix(DeleteDentryByPrefixRequest) returns (DeleteDentryByPrefixResponse) {}
+
   // RouteToVersion routes a specific logical name to a specifc lubernetets services
   // based on a services logicalName and version labels
   rpc RouteToVersion(RouteToVersionRequest) returns (RouteToVersionResponse) {}
@@ -103,4 +109,31 @@ message RouteToVersionRequest {
 // Response for [RouteToVersion](compass.needle.v1.NeedleService.RouteToVersion)
 message RouteToVersionResponse {
     // TODO: fill out
+}
+
+// Request for [DeleteDentryById](compass.needle.v1.NeedleService.DeleteDentryById)
+message DeleteDentryByIdRequest {
+    // Id of the dentry to delete
+    string id = 1;
+}
+
+// Response for [DeleteDentryById](compass.needle.v1.NeedleService.DeleteDentryById)
+message DeleteDentryByIdResponse {
+    // Indicates if the dentry was deleted
+    bool deleted = 1;
+}
+
+// Request for [DeleteDentryByPrefix](compass.needle.v1.NeedleService.DeleteDentryByPrefix)
+message DeleteDentryByPrefixRequest {
+    // Deletegation table the dentry is in
+    string dtab = 1;
+
+    // The dentry predfix
+    string prefix = 2;
+}
+
+// Response for [DeleteDentryByPrefix](compass.needle.v1.NeedleService.DeleteDentryByPrefix)
+message DeleteDentryByPrefixResponse {
+    // Indicates if the dentry was deleted
+    bool deleted = 1;
 }
