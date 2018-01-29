@@ -15,7 +15,7 @@ import (
 )
 
 type ServiceLister interface {
-	ListServices(selectors Selectors) ([]v1.Service, error)
+	ListServices(namespace string, selectors Selectors) ([]v1.Service, error)
 }
 
 // Selectors allow us to build selector labels
@@ -45,24 +45,16 @@ func (s Selectors) String() string {
 // An Option function allows for Client configuration overrides
 type Option func(*Client)
 
-// WithNamespace overrides the Client default namespace
-func WithNamespace(ns string) Option {
-	return func(c *Client) {
-		c.namespace = ns
-	}
-}
-
 // Client provides wraps a kubernetes.Clientset providing
 // convienience methods
 type Client struct {
-	namespace string
-	client    *kubernetes.Clientset
+	client *kubernetes.Clientset
 }
 
 // ListServices returns a list a kubernetes services that match the
 // given selectors
-func (c *Client) ListServices(s Selectors) ([]v1.Service, error) {
-	list, err := c.client.Core().Services(c.namespace).List(meta.ListOptions{
+func (c *Client) ListServices(namespace string, s Selectors) ([]v1.Service, error) {
+	list, err := c.client.Core().Services(namespace).List(meta.ListOptions{
 		LabelSelector: s.String(),
 	})
 	if err != nil {
@@ -74,8 +66,7 @@ func (c *Client) ListServices(s Selectors) ([]v1.Service, error) {
 // New constructs a new Client
 func New(client *kubernetes.Clientset, opts ...Option) *Client {
 	c := &Client{
-		namespace: "default",
-		client:    client,
+		client: client,
 	}
 	for _, opt := range opts {
 		opt(c)
