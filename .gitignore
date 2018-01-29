@@ -14,5 +14,5 @@
 .glide/
 
 # buildt binaries
-/needle*
-/compass*
+/needle.*
+/compass.*
