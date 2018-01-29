@@ -14,6 +14,10 @@ import (
 	_ "k8s.io/client-go/plugin/pkg/client/auth/gcp"
 )
 
+type ServiceLister interface {
+	ListServices(selectors Selectors) ([]v1.Service, error)
+}
+
 // Selectors allow us to build selector labels
 type Selectors map[string]string
 
