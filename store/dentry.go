@@ -27,5 +27,4 @@ type Dentry struct {
 	Prefix      string    `db:"prefix"`
 	Destination string    `db:"destination"`
 	Priority    int32     `db:"priority"`
-	ServiceId   string    `db:"service_id"`
 }
