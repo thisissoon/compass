@@ -8,6 +8,7 @@ import (
 
 	"compass/config"
 	"compass/grpc"
+	"compass/k8s"
 	"compass/logger"
 	"compass/namerd"
 	"compass/needle"
@@ -75,7 +76,13 @@ func startNeedle() int {
 	store := psql.New(db)
 	syncer := sync.New(namerd.New(), store, store)
 	go syncer.Start(ctx)
-	srv := grpc.NewServer(needle.NewService(store))
+	kcc, err := k8s.Clientset()
+	if err != nil {
+		log.Error().Err(err).Msg("failed to obtain kubernetes configuration")
+		return 1
+	}
+	kc := k8s.New(kcc)
+	srv := grpc.NewServer(needle.NewService(store, kc))
 	errC := srv.Serve()
 	defer srv.Stop()
 	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

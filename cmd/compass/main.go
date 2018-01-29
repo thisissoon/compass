@@ -38,6 +38,7 @@ func compassCmd() *cobra.Command {
 	cmd.AddCommand(
 		manageCmd(),
 		dentryCmd(),
+		routeCmd(),
 		versionCmd())
 	return cmd
 }
@@ -141,6 +142,54 @@ func putDentry(dt, p, dst string, pr int32) int {
 				Destination: dst,
 				Priority:    pr,
 			},
+		})
+	if err != nil {
+		log.Error().Err(err).Msg("failed to put dentry")
+		fmt.Println("failed to create / update dentry")
+		return 1
+	}
+	return 0
+}
+
+func routeCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "route",
+		Short: "Update a services dentry.",
+		Run: func(cmd *cobra.Command, _ []string) {
+			cmd.Help()
+		},
+	}
+	cmd.AddCommand(routeVersionCmd())
+	return cmd
+}
+
+func routeVersionCmd() *cobra.Command {
+	var logicalName string
+	var version string
+	cmd := &cobra.Command{
+		Use:   "version",
+		Short: "Route a service a specifcly deployed version",
+		Run: func(cmd *cobra.Command, _ []string) {
+			os.Exit(routeVersion(logicalName, version))
+		},
+	}
+	cmd.Flags().StringVarP(&logicalName, "logical-name", "l", "", "Service logical name.")
+	cmd.Flags().StringVarP(&version, "version", "v", "", "Version e.g: develop, 1.2.3.")
+	return cmd
+}
+
+func routeVersion(logicalName, version string) int {
+	config.Read()
+	log := logger.New()
+	client, ok := grpc.NewClient(grpc.ClientAddress())
+	if !ok {
+		return 0
+	}
+	_, err := client.RouteToVersion(
+		context.Background(),
+		&needle.RouteToVersionRequest{
+			LogicalName: logicalName,
+			Version:     version,
 		})
 	if err != nil {
 		log.Error().Err(err).Msg("failed to put dentry")

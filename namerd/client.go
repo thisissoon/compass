@@ -98,7 +98,6 @@ func (c *Client) Dentries(dtab string) (Dentries, error) {
 // UpdateDentries updates a delegation tables dentries
 func (c *Client) UpdateDentries(dtab Dtab, dentries Dentries) error {
 	log := logger.New()
-	log.Debug().Str("dtab", dtab.String()).Interface("dentries", dentries).Msg("update dtav")
 	var body = new(bytes.Buffer)
 	enc := json.NewEncoder(body)
 	if err := enc.Encode(dentries); err != nil {
