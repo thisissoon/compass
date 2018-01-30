@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"path"
+	"time"
 )
 
 type DentriesUpdator interface {
@@ -127,9 +128,11 @@ func (c *Client) UpdateDentries(dtab Dtab, dentries Dentries) error {
 // default configuration options
 func New(opts ...Option) *Client {
 	c := &Client{
-		host:   "127.0.0.1:4180",
-		scheme: "http",
-		client: http.DefaultClient,
+		host:   Host(),
+		scheme: Scheme(),
+		client: &http.Client{
+			Timeout: time.Second * 5,
+		},
 	}
 	for _, opt := range opts {
 		opt(c)
