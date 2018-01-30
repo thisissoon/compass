@@ -78,3 +78,105 @@ compass route --logical-name frontend # spawns an interactive ui
 `protoc` is required to generate `go` code from `.proto` files.
 
 Download the latest `protoc` release for your OS from https://github.com/google/protobuf/releases and follow the `readme.txt`.
+
+``` yaml
+#
+# Needle Kubernetes Deployment
+#
+---
+# Needle Configuration Map
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: needle-config
+  labels:
+    app: needle
+data:
+  config.yaml: |-
+    [grpc]
+    listen_address = ":5000"
+    [psql]
+    dsn = "postgres://postgres:postgres@localhost:5432/needle?sslmode=disable"
+---
+# Persistent Volume Claim
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: needle-postgres
+  labels:
+    app: needle
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 8Gi
+---
+# Deployment
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: needle
+  labels:
+    app: needle
+spec:
+  replicas: 1
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 1
+  template:
+    metadata:
+      labels:
+        app: needle
+    spec:
+      dnsPolicy: ClusterFirst
+      volumes:
+        - name: config
+          configMap:
+            name: needle-config
+        - name: data
+          persistentVolumeClaim:
+            claimName: needle-postgres
+      containers:
+        - name: needle
+          image: soon/needle:0.0.1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: grpc
+              containerPort: 5000
+          resources:
+            limits:
+              cpu: 0
+              memory: 64Mi
+            requests:
+              cpu: 0
+              memory: 32Mi
+        - name: postgresql
+          image: postgres:10.1-alpine
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data/pgdata
+              subPath: postgresql-db
+          env:
+            - name: POSTGRES_DB
+              value: needle
+            - name: POSTGRES_USER
+              value: postgres
+            - name: POSTGRES_PASSWORD
+              value: postgres
+            - name: PGDATA
+              value: /var/lib/postgresql/data/pgdata
+          ports:
+            - name: postresql
+              containerPort: 5432
+          resources:
+            requests:
+              memory: 256Mi
+              cpu: 100m
+```
