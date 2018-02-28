@@ -1,15 +1,12 @@
 package main
 
 import (
-	"context"
 	"fmt"
 	"os"
 
 	"compass/config"
-	"compass/grpc"
 	"compass/logger"
-
-	needle "compass/proto/needle/v1"
+	"compass/needle/client"
 
 	"github.com/spf13/cobra"
 )
@@ -46,7 +43,6 @@ func compassCmd() *cobra.Command {
 func manageCmd() *cobra.Command {
 	var logicalName string
 	var namespace string
-	var dtab string
 	var description string
 	cmd := &cobra.Command{
 		Use:   "manage",
@@ -55,7 +51,6 @@ func manageCmd() *cobra.Command {
 			os.Exit(putService(
 				logicalName,
 				namespace,
-				dtab,
 				description,
 			))
 		},
@@ -66,27 +61,18 @@ func manageCmd() *cobra.Command {
 	return cmd
 }
 
-func putService(ln, ns, dt, dsc string) int {
-	config.Read()
-	log := logger.New()
-	client, ok := grpc.NewClient(grpc.ClientAddress())
-	if !ok {
-		return 0
-	}
-	_, err := client.PutService(
-		context.Background(),
-		&needle.PutServiceRequest{
-			Service: &needle.Service{
-				LogicalName: ln,
-				Namespace:   ns,
-				Description: dsc,
-			},
-		})
+func putService(ln, ns, dsc string) int {
+	client, err := client.New()
 	if err != nil {
-		log.Error().Err(err).Msg("failed to put service")
-		fmt.Println("failed to create / update service")
 		return 1
 	}
+	svc, err := client.PutService(ln, ns, dsc)
+	if err != nil {
+		return 1
+	}
+	fmt.Println(fmt.Sprintf("Id: %s", svc.GetId()))
+	fmt.Println(fmt.Sprintf("Logical Name: %s", svc.GetLogicalName()))
+	fmt.Println(fmt.Sprintf("Kubernetes Namespace: %s", svc.GetNamespace()))
 	return 0
 }
 
@@ -127,27 +113,15 @@ func dentryPutCmd() *cobra.Command {
 }
 
 func putDentry(dt, p, dst string, pr int32) int {
-	config.Read()
-	log := logger.New()
-	client, ok := grpc.NewClient(grpc.ClientAddress())
-	if !ok {
-		return 0
-	}
-	_, err := client.PutDentry(
-		context.Background(),
-		&needle.PutDentryRequest{
-			Dentry: &needle.Dentry{
-				Dtab:        dt,
-				Prefix:      p,
-				Destination: dst,
-				Priority:    pr,
-			},
-		})
+	client, err := client.New()
 	if err != nil {
-		log.Error().Err(err).Msg("failed to put dentry")
-		fmt.Println("failed to create / update dentry")
 		return 1
 	}
+	id, err := client.PutDentry(dt, p, dst, pr)
+	if err != nil {
+		return 1
+	}
+	fmt.Println(fmt.Sprintf("Created Dentry: %s", id))
 	return 0
 }
 
@@ -177,55 +151,36 @@ func deleteDentryCmd() *cobra.Command {
 }
 
 func deleteDentryById(id string) int {
-	config.Read()
-	log := logger.New()
-	client, ok := grpc.NewClient(grpc.ClientAddress())
-	if !ok {
-		return 1
-	}
-	rsp, err := client.DeleteDentryById(
-		context.Background(),
-		&needle.DeleteDentryByIdRequest{
-			Id: id,
-		})
+	client, err := client.New()
 	if err != nil {
-		log.Error().Err(err).Msg("unable to delete dentry")
-		fmt.Println("Could not delete dentry")
 		return 1
 	}
-	if rsp.GetDeleted() {
-		fmt.Println("Dentry was deleted")
-	} else {
-		fmt.Println("Dentry was not deleted, does it exist?")
+	ok, err := client.DeleteDentryById(id)
+	if err != nil {
 		return 1
 	}
+	if !ok {
+		fmt.Println("Dentry was not deleted")
+		return 1
+	}
+	fmt.Println("Dentry has been deleted")
 	return 0
 }
 
 func deleteDentryByPrefix(dtab, prefix string) int {
-	config.Read()
-	log := logger.New()
-	client, ok := grpc.NewClient(grpc.ClientAddress())
-	if !ok {
-		return 1
-	}
-	rsp, err := client.DeleteDentryByPrefix(
-		context.Background(),
-		&needle.DeleteDentryByPrefixRequest{
-			Dtab:   dtab,
-			Prefix: prefix,
-		})
+	client, err := client.New()
 	if err != nil {
-		log.Error().Err(err).Msg("unable to delete dentry")
-		fmt.Println("Could not delete dentry")
 		return 1
 	}
-	if rsp.GetDeleted() {
-		fmt.Println("Dentry was deleted")
-	} else {
-		fmt.Println("Dentry was not deleted, does it exist?")
+	ok, err := client.DeleteDentryByPrefix(dtab, prefix)
+	if err != nil {
 		return 1
 	}
+	if !ok {
+		fmt.Println("Dentry was not deleted")
+		return 1
+	}
+	fmt.Println("Dentry has been deleted")
 	return 0
 }
 
@@ -257,22 +212,14 @@ func routeVersionCmd() *cobra.Command {
 }
 
 func routeVersion(logicalName, version string) int {
-	config.Read()
-	log := logger.New()
-	client, ok := grpc.NewClient(grpc.ClientAddress())
-	if !ok {
-		return 0
-	}
-	_, err := client.RouteToVersion(
-		context.Background(),
-		&needle.RouteToVersionRequest{
-			LogicalName: logicalName,
-			Version:     version,
-		})
+	client, err := client.New()
 	if err != nil {
-		log.Error().Err(err).Msg("failed to put dentry")
-		fmt.Println("failed to create / update dentry")
 		return 1
 	}
+	if err := client.RouteToVersion(logicalName, version); err != nil {
+		fmt.Println("Could not route to version")
+		return 1
+	}
+	fmt.Println(fmt.Sprintf("Updated delegation table to route %s to %s", logicalName, version))
 	return 0
 }
