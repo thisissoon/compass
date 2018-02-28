@@ -85,3 +85,13 @@ func Clientset() (*kubernetes.Clientset, error) {
 	}
 	return kubernetes.NewForConfig(c)
 }
+
+// GetConfig
+func GetConfig(context string) clientcmd.ClientConfig {
+	lr := clientcmd.NewDefaultClientConfigLoadingRules()
+	co := &clientcmd.ConfigOverrides{}
+	if context != "" {
+		co.CurrentContext = context
+	}
+	return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(lr, co)
+}
