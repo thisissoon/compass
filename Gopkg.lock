@@ -8,6 +8,15 @@
   version = "v0.18.0"
 
 [[projects]]
+  branch = "master"
+  name = "github.com/docker/spdystream"
+  packages = [
+    ".",
+    "spdy"
+  ]
+  revision = "bc6354cbbc295e925e4c611ffe90c1f287ee54db"
+
+[[projects]]
   name = "github.com/fsnotify/fsnotify"
   packages = ["."]
   revision = "c2828203cd70a50dcccfb2761f8b1f8ceef9a8e9"
@@ -424,6 +433,8 @@
     "pkg/util/clock",
     "pkg/util/errors",
     "pkg/util/framer",
+    "pkg/util/httpstream",
+    "pkg/util/httpstream/spdy",
     "pkg/util/intstr",
     "pkg/util/json",
     "pkg/util/net",
@@ -435,6 +446,7 @@
     "pkg/util/yaml",
     "pkg/version",
     "pkg/watch",
+    "third_party/forked/golang/netutil",
     "third_party/forked/golang/reflect"
   ]
   revision = "2f1e02d3e57b8fb5206c5326bcb65217edc63a8e"
@@ -484,8 +496,10 @@
     "tools/clientcmd/api/latest",
     "tools/clientcmd/api/v1",
     "tools/metrics",
+    "tools/portforward",
     "tools/reference",
     "transport",
+    "transport/spdy",
     "util/cert",
     "util/flowcontrol",
     "util/homedir",
@@ -498,6 +512,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "73e1cb665d4973ae8bfdc4fe2ccab63ca2b61ae9602810ea16d378fb2a82e363"
+  inputs-digest = "c5ab782642151732be59b43107e0035dc9c198b1e59b0cdd5214f591db2e37d6"
   solver-name = "gps-cdcl"
   solver-version = 1
