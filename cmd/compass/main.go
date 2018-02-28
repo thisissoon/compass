@@ -11,6 +11,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+var options client.Options
+
 // Application entry point
 func main() {
 	compassCmd().Execute()
@@ -29,6 +31,10 @@ func compassCmd() *cobra.Command {
 	pflags := cmd.PersistentFlags()
 	pflags.String("log-format", "", "log format [console|json]")
 	pflags.StringVarP(&config.Path, "config", "c", "", "Path to configuration file")
+
+	pflags.StringVar(&options.Context, "context", "", "Kubernetes context to use")
+	pflags.StringVar(&options.Namespace, "namespace", "", "Kubernetes namespace needle runs in")
+
 	// Bind persistent flags
 	config.BindFlag(logger.LogFormatKey, pflags.Lookup("log-format"))
 	// Add sub commands
@@ -62,7 +68,7 @@ func manageCmd() *cobra.Command {
 }
 
 func putService(ln, ns, dsc string) int {
-	client, err := client.New()
+	client, err := client.New(options)
 	if err != nil {
 		return 1
 	}
@@ -113,12 +119,14 @@ func dentryPutCmd() *cobra.Command {
 }
 
 func putDentry(dt, p, dst string, pr int32) int {
-	client, err := client.New()
+	client, err := client.New(options)
 	if err != nil {
+		fmt.Println(err)
 		return 1
 	}
 	id, err := client.PutDentry(dt, p, dst, pr)
 	if err != nil {
+		fmt.Println(err)
 		return 1
 	}
 	fmt.Println(fmt.Sprintf("Created Dentry: %s", id))
@@ -151,7 +159,7 @@ func deleteDentryCmd() *cobra.Command {
 }
 
 func deleteDentryById(id string) int {
-	client, err := client.New()
+	client, err := client.New(options)
 	if err != nil {
 		return 1
 	}
@@ -168,7 +176,7 @@ func deleteDentryById(id string) int {
 }
 
 func deleteDentryByPrefix(dtab, prefix string) int {
-	client, err := client.New()
+	client, err := client.New(options)
 	if err != nil {
 		return 1
 	}
@@ -212,7 +220,7 @@ func routeVersionCmd() *cobra.Command {
 }
 
 func routeVersion(logicalName, version string) int {
-	client, err := client.New()
+	client, err := client.New(options)
 	if err != nil {
 		return 1
 	}
