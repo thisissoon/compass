@@ -150,9 +150,10 @@ func deleteDentryCmd() *cobra.Command {
 		Run: func(cmd *cobra.Command, _ []string) {
 			if id != "" {
 				os.Exit(deleteDentryById(id))
-			}
-			if dtab != "" && prefix != "" {
+			} else if dtab != "" && prefix != "" {
 				os.Exit(deleteDentryByPrefix(dtab, prefix))
+			} else {
+				os.Exit(deleteDentry())
 			}
 			cmd.Help()
 		},
@@ -161,6 +162,20 @@ func deleteDentryCmd() *cobra.Command {
 	cmd.Flags().StringVarP(&dtab, "dtab", "d", "", "Delegation table the dentry is in, must also provide --prefix/-p.")
 	cmd.Flags().StringVarP(&prefix, "prefix", "p", "", "Dentry prefix, must also provide --dtab/-d")
 	return cmd
+}
+
+func deleteDentry() int {
+	client, err := client.New(options)
+	if err != nil {
+		return 1
+	}
+	dtabs, err := client.DelegationTables()
+	if err != nil {
+		fmt.Println(err)
+		return 1
+	}
+	fmt.Println(dtabs)
+	return 0
 }
 
 func deleteDentryById(id string) int {

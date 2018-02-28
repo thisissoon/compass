@@ -14,6 +14,9 @@ service NeedleService {
   // PutDentry upserts dentries to be managed
   rpc PutDentry(PutDentryRequest) returns (PutDentryResponse) {}
 
+  // DelegationTables returns a list of delegation tables we are managing
+  rpc DelegationTables(DelegationTablesRequest) returns (DelegationTablesResponse) {}
+
   // DeleteDentryById deletes a dentry by it's UUID
   rpc DeleteDentryById(DeleteDentryByIdRequest) returns (DeleteDentryByIdResponse) {}
 
@@ -44,6 +47,12 @@ message Service {
 
   // Optional description of the service
   string description = 6;
+}
+
+// A DelegationTable holds any number of dentries
+message DelegationTable {
+  // Name of the delegation table
+  string name = 1;
 }
 
 // A Dentry is a single Delegation Table Rule
@@ -136,4 +145,15 @@ message DeleteDentryByPrefixRequest {
 message DeleteDentryByPrefixResponse {
     // Indicates if the dentry was deleted
     bool deleted = 1;
+}
+
+// Request for [DelegationTables](compass.needle.v1.NeedleService.DelegationTables)
+message DelegationTablesRequest {
+  // An empty message
+}
+
+// Response for [DelegationTables](compass.needle.v1.NeedleService.DelegationTables)
+message DelegationTablesResponse {
+    // Delegation tables
+    repeated DelegationTable delegation_tables = 1;
 }

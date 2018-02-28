@@ -200,6 +200,23 @@ func routeToVersion(s ServiceSelectorDentryPutter, sl k8s.ServiceLister, ln, ver
 	return &needle.RouteToVersionResponse{}, nil
 }
 
+// DelegationTables returns a list of delgation tables managed by needle
+func (n *Service) DelegationTables(ctx context.Context, req *needle.DelegationTablesRequest) (*needle.DelegationTablesResponse, error) {
+	tables, err := n.store.DelegationTables()
+	if err != nil {
+		return nil, err
+	}
+	var dtabs []*needle.DelegationTable
+	for _, t := range tables {
+		dtabs = append(dtabs, &needle.DelegationTable{
+			Name: t,
+		})
+	}
+	return &needle.DelegationTablesResponse{
+		DelegationTables: dtabs,
+	}, nil
+}
+
 // NewService returns a new Manager
 func NewService(store store.Store, k8s *k8s.Client) *Service {
 	return &Service{

@@ -170,6 +170,13 @@ func (c *Client) PutService(name, namespace, description string) (*needle.Servic
 	return rsp.GetService(), err
 }
 
+func (c *Client) DelegationTables() ([]*needle.DelegationTable, error) {
+	rsp, err := c.client.DelegationTables(
+		context.Background(),
+		&needle.DelegationTablesRequest{})
+	return rsp.GetDelegationTables(), err
+}
+
 func (c *Client) PutDentry(dtab, prefix, dst string, priority int32) (*needle.Dentry, error) {
 	rsp, err := c.client.PutDentry(
 		context.Background(),

@@ -23,12 +23,16 @@ type (
 		DentryByIdDeletor
 		DentryByPrefixDeletor
 	}
+	DelegationTablLister interface {
+		DelegationTables() ([]string, error)
+	}
 )
 
 type DentryStore interface {
 	DentryPutter
 	DentriesByDtabSelector
 	DentryDeletor
+	DelegationTablLister
 }
 
 type Dentry struct {

@@ -65,6 +65,25 @@ func (store *DentryStore) DtabUpdates() <-chan namerd.Dtab {
 	return (<-chan namerd.Dtab)(store.dtabUpdatesC)
 }
 
+// DelegationTables returns a list of distinct delgation tables
+func (store *DentryStore) DelegationTables() ([]string, error) {
+	var dtabs []string
+	qry := fmt.Sprintf("SELECT DISTINCT(dtab) FROM public.%s ORDER BY dtab ASC", DentryTableName)
+	rows, err := store.db.Queryx(qry)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		var dtab string
+		if err := rows.Scan(&dtab); err != nil {
+			return nil, err
+		}
+		dtabs = append(dtabs, dtab)
+	}
+	return dtabs, nil
+}
+
 // PutDentry creates or updates a dentry
 func (store *DentryStore) PutDentry(dentry *store.Dentry) (*store.Dentry, error) {
 	return upsertDentry(store.db, store.dtabUpdatesC, dentry)
