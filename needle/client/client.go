@@ -23,19 +23,19 @@ import (
 var needlePodLabels labels.Set = labels.Set{"app": "needle"}
 
 // forward opens a port forward to needle
-func forward(context string) (*tunnel.Tunnel, error) {
+func forward(context string, namespace string) (*tunnel.Tunnel, error) {
 	config, client, err := getKubeClient(context)
 	if err != nil {
 		return nil, err
 	}
-	pod, err := getNeedlePodName(client.CoreV1(), "paralympics")
+	pod, err := getNeedlePodName(client.CoreV1(), namespace)
 	if err != nil {
 		return nil, err
 	}
 	t := tunnel.New(
 		client.CoreV1().RESTClient(),
 		config,
-		tunnel.WithNamespace("paralympics"),
+		tunnel.WithNamespace(namespace),
 		tunnel.WithPodName(pod))
 	if err := t.Open(); err != nil {
 		return nil, err
@@ -123,13 +123,18 @@ func getPodCondition(status *v1.PodStatus, conditionType v1.PodConditionType) (i
 	return -1, nil
 }
 
+type Options struct {
+	Context   string
+	Namespace string
+}
+
 type Client struct {
 	tunnel *tunnel.Tunnel
 	client needle.NeedleServiceClient
 }
 
-func New() (*Client, error) {
-	tunnel, err := forward("")
+func New(opts Options) (*Client, error) {
+	tunnel, err := forward(opts.Context, opts.Namespace)
 	if err != nil {
 		return nil, err
 	}
