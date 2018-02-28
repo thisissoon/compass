@@ -170,7 +170,7 @@ func (c *Client) PutService(name, namespace, description string) (*needle.Servic
 	return rsp.GetService(), err
 }
 
-func (c *Client) PutDentry(dtab, prefix, dst string, priority int32) (string, error) {
+func (c *Client) PutDentry(dtab, prefix, dst string, priority int32) (*needle.Dentry, error) {
 	rsp, err := c.client.PutDentry(
 		context.Background(),
 		&needle.PutDentryRequest{
@@ -181,10 +181,7 @@ func (c *Client) PutDentry(dtab, prefix, dst string, priority int32) (string, er
 				Priority:    priority,
 			},
 		})
-	if err != nil {
-		return "", err
-	}
-	return rsp.GetDentry().GetId(), nil
+	return rsp.GetDentry(), err
 }
 
 func (c *Client) DeleteDentryById(id string) (bool, error) {

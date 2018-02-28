@@ -70,10 +70,12 @@ func manageCmd() *cobra.Command {
 func putService(ln, ns, dsc string) int {
 	client, err := client.New(options)
 	if err != nil {
+		fmt.Println(err)
 		return 1
 	}
 	svc, err := client.PutService(ln, ns, dsc)
 	if err != nil {
+		fmt.Println(err)
 		return 1
 	}
 	fmt.Println(fmt.Sprintf("Id: %s", svc.GetId()))
@@ -124,12 +126,15 @@ func putDentry(dt, p, dst string, pr int32) int {
 		fmt.Println(err)
 		return 1
 	}
-	id, err := client.PutDentry(dt, p, dst, pr)
+	dentry, err := client.PutDentry(dt, p, dst, pr)
 	if err != nil {
 		fmt.Println(err)
 		return 1
 	}
-	fmt.Println(fmt.Sprintf("Created Dentry: %s", id))
+	fmt.Println(fmt.Sprintf("Id: %s", dentry.GetId()))
+	fmt.Println(fmt.Sprintf("Delegation Table: %s", dentry.GetDtab()))
+	fmt.Println(fmt.Sprintf("Priority: %d", dentry.GetPriority()))
+	fmt.Println(fmt.Sprintf("Dentry: %s => %s", dentry.GetPrefix(), dentry.GetDestination()))
 	return 0
 }
 
