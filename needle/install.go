@@ -159,7 +159,7 @@ func deployment() *appsv1beta1.Deployment {
 							Env: []apiv1.EnvVar{
 								{
 									Name:  "POSTGRES_DB",
-									Value: "postgres",
+									Value: "needle",
 								},
 								{
 									Name:  "POSTGRES_USER",
