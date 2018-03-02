@@ -17,6 +17,9 @@ service NeedleService {
   // DelegationTables returns a list of delegation tables we are managing
   rpc DelegationTables(DelegationTablesRequest) returns (DelegationTablesResponse) {}
 
+  // Dentries returns for a dtab
+  rpc Dentries(DentriesRequest) returns (DentriesResponse) {}
+
   // DeleteDentryById deletes a dentry by it's UUID
   rpc DeleteDentryById(DeleteDentryByIdRequest) returns (DeleteDentryByIdResponse) {}
 
@@ -154,6 +157,18 @@ message DelegationTablesRequest {
 
 // Response for [DelegationTables](compass.needle.v1.NeedleService.DelegationTables)
 message DelegationTablesResponse {
-    // Delegation tables
-    repeated DelegationTable delegation_tables = 1;
+  // Delegation tables
+  repeated DelegationTable delegation_tables = 1;
+}
+
+// Request for [Dentries](compass.needle.v1.NeedleService.Dentries)
+message DentriesRequest {
+  // Delegation Tables to get Dentries for
+  string dtab = 1;
+}
+
+// Response for [DelegationTables](compass.needle.v1.NeedleService.DelegationTables)
+message DentriesResponse {
+  // Dentries in the delegation table
+  repeated Dentry dentries = 1;
 }
