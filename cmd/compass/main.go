@@ -1,21 +1,53 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 
 	"compass/config"
+	"compass/grpc"
+	"compass/k8s/portforward"
+	"compass/k8s/tunnel"
 	"compass/logger"
-	"compass/needle/client"
+
+	needle "compass/proto/needle/v1"
 
 	"github.com/spf13/cobra"
+
+	survey "gopkg.in/AlecAivazis/survey.v1"
 )
 
-var options client.Options
+var (
+	options      portforward.Options
+	needleTunnel *tunnel.Tunnel
+	client       needle.NeedleServiceClient
+)
 
 // Application entry point
 func main() {
 	compassCmd().Execute()
+}
+
+func setup(cmd *cobra.Command, _ []string) error {
+	t, err := portforward.New(options)
+	if err != nil {
+		return err
+	}
+	needleTunnel = t
+	c, err := grpc.NewClient(t.LocalAddress())
+	if err != nil {
+		return err
+	}
+	client = c
+	return nil
+}
+
+func teardown(cmd *cobra.Command, _ []string) error {
+	if needleTunnel != nil {
+		needleTunnel.Close()
+	}
+	return nil
 }
 
 // New constructs a new CLI interface for execution
@@ -51,8 +83,10 @@ func manageCmd() *cobra.Command {
 	var namespace string
 	var description string
 	cmd := &cobra.Command{
-		Use:   "manage",
-		Short: "Add / Update services compass will manage.",
+		Use:      "manage",
+		Short:    "Add / Update services compass will manage.",
+		PreRunE:  setup,
+		PostRunE: teardown,
 		Run: func(cmd *cobra.Command, _ []string) {
 			os.Exit(putService(
 				logicalName,
@@ -68,16 +102,20 @@ func manageCmd() *cobra.Command {
 }
 
 func putService(ln, ns, dsc string) int {
-	client, err := client.New(options)
+	rsp, err := client.PutService(
+		context.Background(),
+		&needle.PutServiceRequest{
+			Service: &needle.Service{
+				LogicalName: ln,
+				Namespace:   ns,
+				Description: dsc,
+			},
+		})
 	if err != nil {
 		fmt.Println(err)
 		return 1
 	}
-	svc, err := client.PutService(ln, ns, dsc)
-	if err != nil {
-		fmt.Println(err)
-		return 1
-	}
+	svc := rsp.GetService()
 	fmt.Println(fmt.Sprintf("Id: %s", svc.GetId()))
 	fmt.Println(fmt.Sprintf("Logical Name: %s", svc.GetLogicalName()))
 	fmt.Println(fmt.Sprintf("Kubernetes Namespace: %s", svc.GetNamespace()))
@@ -92,8 +130,48 @@ func dentryCmd() *cobra.Command {
 			cmd.Help()
 		},
 	}
-	cmd.AddCommand(dentryPutCmd(), deleteDentryCmd())
+	cmd.AddCommand(dentryListCmd(), dentryPutCmd(), deleteDentryCmd())
 	return cmd
+}
+
+func dentryListCmd() *cobra.Command {
+	var dtab string
+	cmd := &cobra.Command{
+		Use:      "list",
+		Short:    "List dentries for a given delegation table.",
+		PreRunE:  setup,
+		PostRunE: teardown,
+		Run: func(cmd *cobra.Command, _ []string) {
+			os.Exit(dentryList(dtab))
+		},
+	}
+	cmd.Flags().StringVarP(&dtab, "dtab", "d", "", "Delegation table the dentry should be in.")
+	return cmd
+}
+
+func dentryList(dtab string) int {
+	rsp, err := client.Dentries(
+		context.Background(),
+		&needle.DentriesRequest{
+			Dtab: dtab,
+		})
+	if err != nil {
+		fmt.Println(err)
+		return 1
+	}
+	var dentries = rsp.GetDentries()
+	fmt.Println(fmt.Sprintf("Dentries for %s", dtab))
+	fmt.Println("-----------")
+	for i, dentry := range dentries {
+		fmt.Println(dentry.GetId())
+		fmt.Println(fmt.Sprintf("%s => %s",
+			dentry.GetPrefix(),
+			dentry.GetDestination()))
+		if i != len(dentries)-1 {
+			fmt.Println("-----------")
+		}
+	}
+	return 0
 }
 
 func dentryPutCmd() *cobra.Command {
@@ -102,8 +180,10 @@ func dentryPutCmd() *cobra.Command {
 	var destination string
 	var priority int32
 	cmd := &cobra.Command{
-		Use:   "put",
-		Short: "Add / Update manual dtab dentries.",
+		Use:      "put",
+		Short:    "Add / Update manual dtab dentries.",
+		PreRunE:  setup,
+		PostRunE: teardown,
 		Run: func(cmd *cobra.Command, _ []string) {
 			os.Exit(putDentry(
 				dtab,
@@ -120,17 +200,22 @@ func dentryPutCmd() *cobra.Command {
 	return cmd
 }
 
-func putDentry(dt, p, dst string, pr int32) int {
-	client, err := client.New(options)
+func putDentry(dtab, prefix, dst string, priority int32) int {
+	rsp, err := client.PutDentry(
+		context.Background(),
+		&needle.PutDentryRequest{
+			Dentry: &needle.Dentry{
+				Dtab:        dtab,
+				Prefix:      prefix,
+				Destination: dst,
+				Priority:    priority,
+			},
+		})
 	if err != nil {
 		fmt.Println(err)
 		return 1
 	}
-	dentry, err := client.PutDentry(dt, p, dst, pr)
-	if err != nil {
-		fmt.Println(err)
-		return 1
-	}
+	var dentry = rsp.GetDentry()
 	fmt.Println(fmt.Sprintf("Id: %s", dentry.GetId()))
 	fmt.Println(fmt.Sprintf("Delegation Table: %s", dentry.GetDtab()))
 	fmt.Println(fmt.Sprintf("Priority: %d", dentry.GetPriority()))
@@ -145,8 +230,10 @@ func deleteDentryCmd() *cobra.Command {
 		prefix string
 	)
 	cmd := &cobra.Command{
-		Use:   "delete",
-		Short: "Delete dentry by Id or Dtab & Prefix",
+		Use:      "delete",
+		Short:    "Delete dentry by Id or Dtab & Prefix",
+		PreRunE:  setup,
+		PostRunE: teardown,
 		Run: func(cmd *cobra.Command, _ []string) {
 			if id != "" {
 				os.Exit(deleteDentryById(id))
@@ -165,29 +252,92 @@ func deleteDentryCmd() *cobra.Command {
 }
 
 func deleteDentry() int {
-	client, err := client.New(options)
-	if err != nil {
-		return 1
-	}
-	dtabs, err := client.DelegationTables()
+	var ctx = context.Background()
+	// Get delegation tables
+	delegationTablesRsp, err := client.DelegationTables(ctx, &needle.DelegationTablesRequest{})
 	if err != nil {
 		fmt.Println(err)
 		return 1
 	}
-	fmt.Println(dtabs)
+	var dtabNames []string
+	for _, dtab := range delegationTablesRsp.GetDelegationTables() {
+		dtabNames = append(dtabNames, dtab.GetName())
+	}
+	// Prompt user to choose delegation table
+	var dtab string
+	dtabPrompt := &survey.Select{
+		Message: "Please select a Delegation Table:",
+		Options: dtabNames,
+	}
+	survey.AskOne(dtabPrompt, &dtab, nil)
+	// Get dentries
+	dentriesRsp, err := client.Dentries(
+		context.Background(),
+		&needle.DentriesRequest{
+			Dtab: dtab,
+		})
+	if err != nil {
+		fmt.Println(err)
+		return 1
+	}
+	// Prompt user to pick a dentry
+	var dentryNames []string
+	var dentryMap map[string]*needle.Dentry = map[string]*needle.Dentry{}
+	for _, dentry := range dentriesRsp.GetDentries() {
+		name := fmt.Sprintf("%s => %s", dentry.GetPrefix(), dentry.GetDestination())
+		dentryNames = append(dentryNames, name)
+		dentryMap[name] = dentry
+	}
+	var dentryName string
+	dentryPrompt := &survey.Select{
+		Message: "Please select a Dentry to delete:",
+		Options: dentryNames,
+	}
+	survey.AskOne(dentryPrompt, &dentryName, nil)
+	// Confirm prompt
+	dentry, ok := dentryMap[dentryName]
+	if !ok {
+		fmt.Println("Dentry not found")
+		return 1
+	}
+	confirm := false
+	confirmPrompt := &survey.Confirm{
+		Message: fmt.Sprintf("Delete %s => %s?", dentry.GetPrefix(), dentry.GetDestination()),
+	}
+	survey.AskOne(confirmPrompt, &confirm, nil)
+	if !confirm {
+		fmt.Println("Dentry was not deleted.")
+		return 0
+	}
+	// Delete dentry
+	deleteDentryByIdRsp, err := client.DeleteDentryById(
+		context.Background(),
+		&needle.DeleteDentryByIdRequest{
+			Id: dentry.GetId(),
+		})
+	if err != nil {
+		fmt.Println(err)
+		return 1
+	}
+	if !deleteDentryByIdRsp.GetDeleted() {
+		fmt.Println("Dentry was not deleted.")
+		return 1
+	}
+	fmt.Println("Dentry has been deleted")
 	return 0
 }
 
 func deleteDentryById(id string) int {
-	client, err := client.New(options)
+	rsp, err := client.DeleteDentryById(
+		context.Background(),
+		&needle.DeleteDentryByIdRequest{
+			Id: id,
+		})
 	if err != nil {
+		fmt.Println(err)
 		return 1
 	}
-	ok, err := client.DeleteDentryById(id)
-	if err != nil {
-		return 1
-	}
-	if !ok {
+	if !rsp.GetDeleted() {
 		fmt.Println("Dentry was not deleted")
 		return 1
 	}
@@ -196,15 +346,17 @@ func deleteDentryById(id string) int {
 }
 
 func deleteDentryByPrefix(dtab, prefix string) int {
-	client, err := client.New(options)
+	rsp, err := client.DeleteDentryByPrefix(
+		context.Background(),
+		&needle.DeleteDentryByPrefixRequest{
+			Dtab:   dtab,
+			Prefix: prefix,
+		})
 	if err != nil {
+		fmt.Println(err)
 		return 1
 	}
-	ok, err := client.DeleteDentryByPrefix(dtab, prefix)
-	if err != nil {
-		return 1
-	}
-	if !ok {
+	if !rsp.GetDeleted() {
 		fmt.Println("Dentry was not deleted")
 		return 1
 	}
@@ -228,8 +380,10 @@ func routeVersionCmd() *cobra.Command {
 	var logicalName string
 	var version string
 	cmd := &cobra.Command{
-		Use:   "version",
-		Short: "Route a service a specifcly deployed version",
+		Use:      "version",
+		Short:    "Route a service a specifcly deployed version",
+		PreRunE:  setup,
+		PostRunE: teardown,
 		Run: func(cmd *cobra.Command, _ []string) {
 			os.Exit(routeVersion(logicalName, version))
 		},
@@ -240,12 +394,14 @@ func routeVersionCmd() *cobra.Command {
 }
 
 func routeVersion(logicalName, version string) int {
-	client, err := client.New(options)
+	_, err := client.RouteToVersion(
+		context.Background(),
+		&needle.RouteToVersionRequest{
+			LogicalName: logicalName,
+			Version:     version,
+		})
 	if err != nil {
-		return 1
-	}
-	if err := client.RouteToVersion(logicalName, version); err != nil {
-		fmt.Println("Could not route to version")
+		fmt.Println(err)
 		return 1
 	}
 	fmt.Println(fmt.Sprintf("Updated delegation table to route %s to %s", logicalName, version))
