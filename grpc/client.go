@@ -10,7 +10,7 @@ import (
 	needle "compass/proto/needle/v1"
 )
 
-func NewClient(addr string) (needle.NeedleServiceClient, bool) {
+func NewClient(addr string) (needle.NeedleServiceClient, error) {
 	log := logger.New()
 	log.Debug().Str("address", addr).Msg("connecting to gRPC server")
 	cc, err := grpc.Dial(
@@ -20,8 +20,7 @@ func NewClient(addr string) (needle.NeedleServiceClient, bool) {
 		grpc.WithTimeout(time.Second*5),
 	)
 	if err != nil {
-		log.Error().Err(err).Msg("failed to create gRPC connection")
-		return nil, false
+		return nil, err
 	}
-	return needle.NewNeedleServiceClient(cc), true
+	return needle.NewNeedleServiceClient(cc), nil
 }
