@@ -106,3 +106,17 @@ needle-image:
 		--build-arg BUILD_VERSION=$(BUILD_VERSION) \
 		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
 		-t soon/needle:$(BUILD_VERSION) .
+
+needle-install-bin-name:
+	$(eval BIN_NAME = needle.$(BUILD_VERSION).$(GOOS)-$(GOARCH))
+
+compass-install-bin-name:
+	$(eval BIN_NAME = compass.$(BUILD_VERSION).$(GOOS)-$(GOARCH))
+
+install-compass: compass-install-bin-name | compass
+	mv $(BIN_NAME) ~/.local/bin/compass
+
+install-needle: needle-install-bin-name | needle
+	mv $(BIN_NAME) ~/.local/bin/needle
+
+install: install-compass install-needle
