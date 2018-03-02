@@ -217,6 +217,29 @@ func (n *Service) DelegationTables(ctx context.Context, req *needle.DelegationTa
 	}, nil
 }
 
+// Dentries returns a list of dentries for a delegation table
+func (n *Service) Dentries(ctx context.Context, req *needle.DentriesRequest) (*needle.DentriesResponse, error) {
+	dCh, err := n.store.DentriesByDtab(req.GetDtab())
+	if err != nil {
+		return nil, err
+	}
+	var dentries []*needle.Dentry
+	for dentry := range dCh {
+		dentries = append(dentries, &needle.Dentry{
+			Id:          dentry.Id.String(),
+			CreateDate:  &timestamp.Timestamp{Seconds: dentry.CreateDate.Unix()},
+			UpdateDate:  &timestamp.Timestamp{Seconds: dentry.UpdateDate.Unix()},
+			Dtab:        dentry.Dtab,
+			Prefix:      dentry.Prefix,
+			Destination: dentry.Destination,
+			Priority:    dentry.Priority,
+		})
+	}
+	return &needle.DentriesResponse{
+		Dentries: dentries,
+	}, nil
+}
+
 // NewService returns a new Manager
 func NewService(store store.Store, k8s *k8s.Client) *Service {
 	return &Service{
