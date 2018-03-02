@@ -1,4 +1,13 @@
 #
+# Prune Settings
+#
+
+[prune]
+  non-go = true
+  unused-packages = true
+  go-tests = true
+
+#
 # Constraints
 #
 
@@ -47,11 +56,7 @@
   name = "github.com/mattes/migrate"
   version = "v3.0.1"
 
-#
-# Prune Settings
-#
-
-[prune]
-  non-go = true
-  unused-packages = true
-  go-tests = true
+# Interactive CLI
+[[constraint]]
+  name = "gopkg.in/AlecAivazis/survey.v1"
+  version = "v1.4.1"
