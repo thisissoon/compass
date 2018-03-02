@@ -102,16 +102,6 @@ func deployment() *appsv1beta1.Deployment {
 					DNSPolicy: apiv1.DNSClusterFirst,
 					Volumes: []apiv1.Volume{
 						{
-							Name: "config",
-							VolumeSource: apiv1.VolumeSource{
-								ConfigMap: &apiv1.ConfigMapVolumeSource{
-									LocalObjectReference: apiv1.LocalObjectReference{
-										Name: "needle-config",
-									},
-								},
-							},
-						},
-						{
 							Name: "pgdata",
 							VolumeSource: apiv1.VolumeSource{
 								PersistentVolumeClaim: &apiv1.PersistentVolumeClaimVolumeSource{
@@ -125,13 +115,6 @@ func deployment() *appsv1beta1.Deployment {
 							Name:            "needle",
 							Image:           fmt.Sprintf("soon/needle:%s", version.Version()),
 							ImagePullPolicy: apiv1.PullIfNotPresent,
-							VolumeMounts: []apiv1.VolumeMount{
-								{
-									Name:      "config",
-									MountPath: "/etc/compass",
-									ReadOnly:  true,
-								},
-							},
 							Ports: []apiv1.ContainerPort{
 								{
 									Name:          "grpc",
