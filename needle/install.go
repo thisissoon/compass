@@ -18,7 +18,7 @@ import (
 var (
 	deploymentName             = "needle"
 	pvClaimName                = "needle-postgres-pv"
-	postgresPasswordSecretName = "needle-postgress-password"
+	postgresPasswordSecretName = "needle-postgres-password"
 	postgresPasswordSecretKey  = "postgres-password"
 )
 
