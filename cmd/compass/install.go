@@ -1,17 +1,22 @@
-package needle
+package main
 
 import (
-	"compass/version"
 	"fmt"
 	"math/rand"
+	"os"
 	"time"
 
+	"compass/k8s"
+	"compass/version"
+
+	"github.com/spf13/cobra"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
 
 	appsv1beta1 "k8s.io/api/apps/v1beta1"
 	apiv1 "k8s.io/api/core/v1"
+	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
@@ -27,24 +32,26 @@ var Labels = map[string]string{
 	"app":  "compass",
 }
 
+// password character set
 const charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
+// random seeder
 var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
 
-func StringWithCharset(length int, charset string) string {
-	b := make([]byte, length)
+// password generates a random password for postgres
+func password() string {
+	b := make([]byte, 12)
 	for i := range b {
 		b[i] = charset[seededRand.Intn(len(charset))]
 	}
 	return string(b)
 }
 
-func Password(length int) string {
-	return StringWithCharset(length, charset)
-}
-
+// IntOrStringPtr converts returns a pointer to a intstr.IntOrString
 func IntOrStringPtr(i intstr.IntOrString) *intstr.IntOrString { return &i }
 
+// postgresPasswordSecret creates a secret that stores a random generated password\
+// for the postgres server
 func postgresPasswordSecret() *apiv1.Secret {
 	return &apiv1.Secret{
 		ObjectMeta: metav1.ObjectMeta{
@@ -53,7 +60,7 @@ func postgresPasswordSecret() *apiv1.Secret {
 		},
 		Type: apiv1.SecretTypeOpaque,
 		Data: map[string][]byte{
-			postgresPasswordSecretKey: []byte(Password(12)),
+			postgresPasswordSecretKey: []byte(password()),
 		},
 	}
 }
@@ -78,8 +85,8 @@ func pv() *apiv1.PersistentVolumeClaim {
 	}
 }
 
-// returns a delpoyment for needle
-func deployment() *appsv1beta1.Deployment {
+// deployment returns a delpoyment for needle
+func deployment(namespace string) *appsv1beta1.Deployment {
 	var replicas int32 = 1
 	return &appsv1beta1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
@@ -136,12 +143,12 @@ func deployment() *appsv1beta1.Deployment {
 							},
 							Resources: apiv1.ResourceRequirements{
 								Limits: apiv1.ResourceList{
-									apiv1.ResourceLimitsCPU:    *resource.NewQuantity(0, resource.DecimalSI),
-									apiv1.ResourceLimitsMemory: *resource.NewScaledQuantity(64, resource.Mega),
+									apiv1.ResourceCPU:    resource.MustParse("0"),
+									apiv1.ResourceMemory: resource.MustParse("64Mi"),
 								},
 								Requests: apiv1.ResourceList{
-									apiv1.ResourceLimitsCPU:    *resource.NewQuantity(0, resource.DecimalSI),
-									apiv1.ResourceLimitsMemory: *resource.NewScaledQuantity(32, resource.Mega),
+									apiv1.ResourceCPU:    resource.MustParse("0"),
+									apiv1.ResourceMemory: resource.MustParse("32Mi"),
 								},
 							},
 						},
@@ -151,7 +158,7 @@ func deployment() *appsv1beta1.Deployment {
 							ImagePullPolicy: apiv1.PullIfNotPresent,
 							VolumeMounts: []apiv1.VolumeMount{
 								{
-									Name:      pvClaimName,
+									Name:      "pgdata",
 									MountPath: "/var/lib/postgresql/data/pgdata",
 									SubPath:   "postgresql-db",
 								},
@@ -189,8 +196,8 @@ func deployment() *appsv1beta1.Deployment {
 							},
 							Resources: apiv1.ResourceRequirements{
 								Requests: apiv1.ResourceList{
-									apiv1.ResourceLimitsCPU:    *resource.NewQuantity(100, resource.DecimalSI),
-									apiv1.ResourceLimitsMemory: *resource.NewScaledQuantity(256, resource.Mega),
+									apiv1.ResourceCPU:    resource.MustParse("0"),
+									apiv1.ResourceMemory: resource.MustParse("256Mi"),
 								},
 							},
 						},
@@ -201,15 +208,79 @@ func deployment() *appsv1beta1.Deployment {
 	}
 }
 
-func Install(cc *kubernetes.Clientset, namespace string) error {
-	// Create Postgres Password as a Secret
-	sc := cc.CoreV1().Secrets(namespace)
-	sc.Create(postgresPasswordSecret())
-	// Create postgres persistent volumn claim
-	pvc := cc.CoreV1().PersistentVolumeClaims(namespace)
-	pvc.Create(pv())
-	// Create needle deployment
-	dc := cc.AppsV1beta1().Deployments(namespace)
-	dc.Create(deployment())
-	return nil
+func installCmd() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "install",
+		Short: "Install needle, compass's server component into a Kubernetes cluster",
+		Run: func(cmd *cobra.Command, _ []string) {
+			os.Exit(install())
+		},
+	}
+	return cmd
+}
+
+func handleK8sError(err error) int {
+	se, ok := err.(*k8serrors.StatusError)
+	if !ok {
+		fmt.Println(fmt.Sprintf("unexpected error: %s", err))
+		return 1
+	}
+	switch se.Status().Reason {
+	case metav1.StatusReasonAlreadyExists:
+		fmt.Println("OK: Already exists")
+		return 0 // this is fine
+	default:
+		fmt.Println(fmt.Sprintf("unexpected error: %s", err))
+	}
+	return 1
+}
+
+func createSecret(cs *kubernetes.Clientset, ns string) int {
+	fmt.Println("Creating secrets for database...")
+	sc := cs.CoreV1().Secrets(ns)
+	if _, err := sc.Create(postgresPasswordSecret()); err != nil {
+		return handleK8sError(err)
+	}
+	fmt.Println("OK")
+	return 0
+}
+
+func createPv(cs *kubernetes.Clientset, ns string) int {
+	fmt.Println("Creating persisntent volumn claim for database...")
+	pvc := cs.CoreV1().PersistentVolumeClaims(ns)
+	if _, err := pvc.Create(pv()); err != nil {
+		return handleK8sError(err)
+	}
+	fmt.Println("OK")
+	return 0
+}
+
+func createDeployment(cs *kubernetes.Clientset, ns string) int {
+	fmt.Println("Creating deployment...")
+	dc := cs.AppsV1beta1().Deployments(ns)
+	if _, err := dc.Create(deployment(ns)); err != nil {
+		return handleK8sError(err)
+	}
+	fmt.Println("OK")
+	return 0
+}
+
+func install() int {
+	namespace := "compass"
+	cs, err := k8s.Clientset()
+	if err != nil {
+		fmt.Println(err)
+		return 1
+	}
+	if code := createSecret(cs, namespace); code > 0 {
+		return code
+	}
+	if code := createPv(cs, namespace); code > 0 {
+		return code
+	}
+	if code := createDeployment(cs, namespace); code > 0 {
+		return code
+	}
+	fmt.Println("Installed")
+	return 0
 }

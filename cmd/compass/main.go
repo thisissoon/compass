@@ -71,6 +71,7 @@ func compassCmd() *cobra.Command {
 	config.BindFlag(logger.LogFormatKey, pflags.Lookup("log-format"))
 	// Add sub commands
 	cmd.AddCommand(
+		installCmd(),
 		manageCmd(),
 		dentryCmd(),
 		routeCmd(),
