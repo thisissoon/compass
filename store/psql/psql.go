@@ -2,6 +2,9 @@ package psql
 
 // postgresql driver
 import (
+	"net/url"
+	"path"
+
 	"github.com/jmoiron/sqlx"
 
 	_ "github.com/lib/pq"
@@ -12,10 +15,38 @@ type QueryExecer interface {
 	sqlx.Execer
 }
 
+// A DSN is a postgresql Data source name used for database connection
+type DSN struct {
+	Host     string
+	Name     string
+	Username string
+	Password string
+	SSLMode  string
+}
+
+// String bulds the DSN as a URL returning the constructed URL
+func (dsn DSN) String() string {
+	v := url.Values{}
+	v.Add("sslmode", dsn.SSLMode)
+	u := url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(dsn.Username, dsn.Password),
+		Host:     dsn.Host,
+		Path:     path.Join(dsn.Name),
+		RawQuery: v.Encode(),
+	}
+	return u.String()
+}
+
 // Store embeds the various other stores for a single store interface
 type Store struct {
 	*ServiceStore
 	*DentryStore
+}
+
+// Open opens a new postgrtes connection using the provided DSN
+func Open(dsn DSN) (*sqlx.DB, error) {
+	return sqlx.Open("postgres", dsn.String())
 }
 
 // New connects to a new Store

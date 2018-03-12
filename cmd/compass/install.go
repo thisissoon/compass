@@ -272,13 +272,13 @@ func install() int {
 		fmt.Println(err)
 		return 1
 	}
-	if code := createSecret(cs, namespace); code > 0 {
+	if code := createSecret(cs, namespace); code != 0 {
 		return code
 	}
-	if code := createPv(cs, namespace); code > 0 {
+	if code := createPv(cs, namespace); code != 0 {
 		return code
 	}
-	if code := createDeployment(cs, namespace); code > 0 {
+	if code := createDeployment(cs, namespace); code != 0 {
 		return code
 	}
 	fmt.Println("Installed")

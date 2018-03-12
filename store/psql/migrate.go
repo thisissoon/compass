@@ -31,7 +31,7 @@ func (l *MigrateLogger) Verbose() bool {
 }
 
 // Migrate runs database migrat
-func NewMigrator() (*migrate.Migrate, error) {
+func NewMigrator(dsn DSN) (*migrate.Migrate, error) {
 	log := logger.New()
 	// Get migration files from go-bindata codegen
 	resource := bindata.Resource(migrations.AssetNames(),
@@ -45,7 +45,7 @@ func NewMigrator() (*migrate.Migrate, error) {
 		return nil, err
 	}
 	// Create migrator using our data source and db driver
-	m, err := migrate.NewWithSourceInstance("go-bindata", source, DSN())
+	m, err := migrate.NewWithSourceInstance("go-bindata", source, dsn.String())
 	if err != nil {
 		return nil, err
 	}

@@ -128,8 +128,8 @@ func (c *Client) UpdateDentries(dtab Dtab, dentries Dentries) error {
 // default configuration options
 func New(opts ...Option) *Client {
 	c := &Client{
-		host:   Host(),
-		scheme: Scheme(),
+		host:   "localhost:4180",
+		scheme: "http",
 		client: &http.Client{
 			Timeout: time.Second * 5,
 		},

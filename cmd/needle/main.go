@@ -6,7 +6,6 @@ import (
 	"os/signal"
 	"syscall"
 
-	"compass/config"
 	"compass/grpc"
 	"compass/k8s"
 	"compass/logger"
@@ -17,8 +16,10 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
+// OS Signal Channel
 var sigC = make(chan os.Signal)
 
 // Application entry point
@@ -37,15 +38,16 @@ func needleCmd() *cobra.Command {
 	}
 	// Global flags
 	pflags := cmd.PersistentFlags()
-	pflags.String("log-format", "", "log format [console|json]")
-	pflags.StringVarP(&config.Path, "config", "c", "", "Path to configuration file")
-	// Bind persistent flags
-	config.BindFlag(logger.LogFormatKey, pflags.Lookup("log-format"))
+	pflags.String("config-path", "", "Path to configuration file")
+	pflags.String("log-format", "", "Log output format [console|json]")
+	// Bind global flags to viper configs
+	viper.BindPFlag(configPathKey, pflags.Lookup("config-path"))
+	viper.BindPFlag(logFormatKey, pflags.Lookup("log-format"))
 	// Local Flags
 	flags := cmd.Flags()
-	flags.StringP("listen", "l", "", "server listen address")
+	flags.StringP("listen", "l", "", "gRPC server listen address, e.g :5000")
 	// Bind local flags to config options
-	config.BindFlag(grpc.ListenAddressConfigKey, flags.Lookup("listen"))
+	viper.BindPFlag(grpcListenKey, pflags.Lookup("listen"))
 	// Add sub commands
 	cmd.AddCommand(
 		migrateCmd(),
@@ -53,28 +55,40 @@ func needleCmd() *cobra.Command {
 	return cmd
 }
 
-// loadConfig loads configuraion
-func loadConfig() {
-	logger := logger.New()
-	if err := config.Read(); err != nil {
-		logger.Error().Err(err).Msg("error loading configuration")
+// dbDSN returns the database connection url
+func dbDSN() psql.DSN {
+	return psql.DSN{
+		Name:     viper.GetString(dbNameKey),
+		Host:     viper.GetString(dbHostKey),
+		Username: viper.GetString(dbUserKey),
+		Password: viper.GetString(dbPassKey),
+		SSLMode:  viper.GetString(dbSSLModeKey),
 	}
+}
+
+// openDB opens a database connection
+func openDB() (*sqlx.DB, error) {
+	return psql.Open(dbDSN())
 }
 
 // startNeedle starts the needle gRPC server
 // returns os exit code
 func startNeedle() int {
-	loadConfig()
+	readConfig()
 	ctx, cancel := context.WithCancel(context.Background())
 	log := logger.New()
-	db, err := sqlx.Open("postgres", psql.DSN())
+	db, err := openDB()
+
 	if err != nil {
 		log.Error().Err(err).Msg("failed to open database connection")
 		return 1
 	}
 	defer db.Close()
 	store := psql.New(db)
-	syncer := sync.New(namerd.New(), store, store)
+	nd := namerd.New(
+		namerd.WithHost(viper.GetString(namerdHostKey)),
+		namerd.WithScheme(viper.GetString(namerdSchemeKey)))
+	syncer := sync.New(nd, store, store)
 	go syncer.Start(ctx)
 	kcc, err := k8s.Clientset()
 	if err != nil {
@@ -82,7 +96,9 @@ func startNeedle() int {
 		return 1
 	}
 	kc := k8s.New(kcc)
-	srv := grpc.NewServer(needle.NewService(store, kc))
+	srv := grpc.NewServer(
+		needle.NewService(store, kc),
+		grpc.WithAddress(viper.GetString(grpcListenKey)))
 	errC := srv.Serve()
 	defer srv.Stop()
 	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

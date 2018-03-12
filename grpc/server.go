@@ -7,6 +7,7 @@ import (
 	"google.golang.org/grpc"
 
 	"compass/logger"
+
 	needle "compass/proto/needle/v1"
 )
 
@@ -64,7 +65,7 @@ func (s *Server) Stop() {
 // Use Option functions to override defaults
 func NewServer(ns needle.NeedleServiceServer, opts ...Option) *Server {
 	s := &Server{
-		addr: ListenAddress(),
+		addr: ":5000",
 		ns:   ns,
 	}
 	for _, opt := range opts {

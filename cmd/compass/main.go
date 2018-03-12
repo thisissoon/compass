@@ -5,23 +5,23 @@ import (
 	"fmt"
 	"os"
 
-	"compass/config"
 	"compass/grpc"
 	"compass/k8s/portforward"
 	"compass/k8s/tunnel"
-	"compass/logger"
 
-	needle "compass/proto/needle/v1"
+	needlepb "compass/proto/needle/v1"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 
 	survey "gopkg.in/AlecAivazis/survey.v1"
 )
 
 var (
-	options      portforward.Options
+	// tunnel to needle
 	needleTunnel *tunnel.Tunnel
-	client       needle.NeedleServiceClient
+	// needle cient
+	client needlepb.NeedleServiceClient
 )
 
 // Application entry point
@@ -29,8 +29,12 @@ func main() {
 	compassCmd().Execute()
 }
 
+// setup opens a port forward to needle
 func setup(cmd *cobra.Command, _ []string) error {
-	t, err := portforward.New(options)
+	t, err := portforward.New(portforward.Options{
+		Namespace: viper.GetString(kubeNamespaceKey),
+		Context:   viper.GetString(kubeContextKey),
+	})
 	if err != nil {
 		return err
 	}
@@ -43,6 +47,7 @@ func setup(cmd *cobra.Command, _ []string) error {
 	return nil
 }
 
+// teardown closes the port foreard to needle if open
 func teardown(cmd *cobra.Command, _ []string) error {
 	if needleTunnel != nil {
 		needleTunnel.Close()
@@ -61,14 +66,11 @@ func compassCmd() *cobra.Command {
 	}
 	// Global flags
 	pflags := cmd.PersistentFlags()
-	pflags.String("log-format", "", "log format [console|json]")
-	pflags.StringVarP(&config.Path, "config", "c", "", "Path to configuration file")
-
-	pflags.StringVar(&options.Context, "context", "", "Kubernetes context to use")
-	pflags.StringVar(&options.Namespace, "namespace", "", "Kubernetes namespace needle runs in")
-
+	pflags.String("config-path", "", "Path to configuration file")
+	pflags.String("log-format", "", "Log output format [console|json]")
 	// Bind persistent flags
-	config.BindFlag(logger.LogFormatKey, pflags.Lookup("log-format"))
+	viper.BindPFlag(configPathKey, pflags.Lookup("config-path"))
+	viper.BindPFlag(logFormatKey, pflags.Lookup("log-format"))
 	// Add sub commands
 	cmd.AddCommand(
 		installCmd(),
@@ -105,8 +107,8 @@ func manageCmd() *cobra.Command {
 func putService(ln, ns, dsc string) int {
 	rsp, err := client.PutService(
 		context.Background(),
-		&needle.PutServiceRequest{
-			Service: &needle.Service{
+		&needlepb.PutServiceRequest{
+			Service: &needlepb.Service{
 				LogicalName: ln,
 				Namespace:   ns,
 				Description: dsc,
@@ -153,7 +155,7 @@ func dentryListCmd() *cobra.Command {
 func dentryList(dtab string) int {
 	rsp, err := client.Dentries(
 		context.Background(),
-		&needle.DentriesRequest{
+		&needlepb.DentriesRequest{
 			Dtab: dtab,
 		})
 	if err != nil {
@@ -204,8 +206,8 @@ func dentryPutCmd() *cobra.Command {
 func putDentry(dtab, prefix, dst string, priority int32) int {
 	rsp, err := client.PutDentry(
 		context.Background(),
-		&needle.PutDentryRequest{
-			Dentry: &needle.Dentry{
+		&needlepb.PutDentryRequest{
+			Dentry: &needlepb.Dentry{
 				Dtab:        dtab,
 				Prefix:      prefix,
 				Destination: dst,
@@ -255,7 +257,7 @@ func deleteDentryCmd() *cobra.Command {
 func deleteDentry() int {
 	var ctx = context.Background()
 	// Get delegation tables
-	delegationTablesRsp, err := client.DelegationTables(ctx, &needle.DelegationTablesRequest{})
+	delegationTablesRsp, err := client.DelegationTables(ctx, &needlepb.DelegationTablesRequest{})
 	if err != nil {
 		fmt.Println(err)
 		return 1
@@ -274,7 +276,7 @@ func deleteDentry() int {
 	// Get dentries
 	dentriesRsp, err := client.Dentries(
 		context.Background(),
-		&needle.DentriesRequest{
+		&needlepb.DentriesRequest{
 			Dtab: dtab,
 		})
 	if err != nil {
@@ -283,7 +285,7 @@ func deleteDentry() int {
 	}
 	// Prompt user to pick a dentry
 	var dentryNames []string
-	var dentryMap map[string]*needle.Dentry = map[string]*needle.Dentry{}
+	var dentryMap map[string]*needlepb.Dentry = map[string]*needlepb.Dentry{}
 	for _, dentry := range dentriesRsp.GetDentries() {
 		name := fmt.Sprintf("%s => %s", dentry.GetPrefix(), dentry.GetDestination())
 		dentryNames = append(dentryNames, name)
@@ -313,7 +315,7 @@ func deleteDentry() int {
 	// Delete dentry
 	deleteDentryByIdRsp, err := client.DeleteDentryById(
 		context.Background(),
-		&needle.DeleteDentryByIdRequest{
+		&needlepb.DeleteDentryByIdRequest{
 			Id: dentry.GetId(),
 		})
 	if err != nil {
@@ -331,7 +333,7 @@ func deleteDentry() int {
 func deleteDentryById(id string) int {
 	rsp, err := client.DeleteDentryById(
 		context.Background(),
-		&needle.DeleteDentryByIdRequest{
+		&needlepb.DeleteDentryByIdRequest{
 			Id: id,
 		})
 	if err != nil {
@@ -349,7 +351,7 @@ func deleteDentryById(id string) int {
 func deleteDentryByPrefix(dtab, prefix string) int {
 	rsp, err := client.DeleteDentryByPrefix(
 		context.Background(),
-		&needle.DeleteDentryByPrefixRequest{
+		&needlepb.DeleteDentryByPrefixRequest{
 			Dtab:   dtab,
 			Prefix: prefix,
 		})
@@ -397,7 +399,7 @@ func routeVersionCmd() *cobra.Command {
 func routeVersion(logicalName, version string) int {
 	_, err := client.RouteToVersion(
 		context.Background(),
-		&needle.RouteToVersionRequest{
+		&needlepb.RouteToVersionRequest{
 			LogicalName: logicalName,
 			Version:     version,
 		})

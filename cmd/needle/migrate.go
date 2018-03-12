@@ -40,10 +40,11 @@ func migrateUpCmd() *cobra.Command {
 
 // migrateUp runs database upgrade migrations
 func migrateUp() int {
-	loadConfig()
+	readConfig()
 	log := logger.New()
-	log.Debug().Str("dsn", psql.DSN()).Msg("opening database connection")
-	m, err := psql.NewMigrator()
+	dsn := dbDSN()
+	log.Debug().Str("dsn", dsn.String()).Msg("opening database connection")
+	m, err := psql.NewMigrator(dsn)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create database migrator")
 		return 1
@@ -70,9 +71,11 @@ func migrateDownCmd() *cobra.Command {
 
 // migrateDown runs database downgrade migrations
 func migrateDown() int {
-	loadConfig()
+	readConfig()
 	log := logger.New()
-	m, err := psql.NewMigrator()
+	dsn := dbDSN()
+	log.Debug().Str("dsn", dsn.String()).Msg("opening database connection")
+	m, err := psql.NewMigrator(dsn)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create database migrator")
 		return 1
@@ -99,9 +102,11 @@ func migrateVersionCmd() *cobra.Command {
 
 // migrateVersion prints the current database version
 func migrateVersion() int {
-	loadConfig()
+	readConfig()
 	log := logger.New()
-	m, err := psql.NewMigrator()
+	dsn := dbDSN()
+	log.Debug().Str("dsn", dsn.String()).Msg("opening database connection")
+	m, err := psql.NewMigrator(dsn)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create database migrator")
 		return 1
@@ -130,9 +135,11 @@ func migrateDropCmd() *cobra.Command {
 
 // migrateDrop prints the current database version
 func migrateDrop() int {
-	loadConfig()
+	readConfig()
 	log := logger.New()
-	m, err := psql.NewMigrator()
+	dsn := dbDSN()
+	log.Debug().Str("dsn", dsn.String()).Msg("opening database connection")
+	m, err := psql.NewMigrator(dsn)
 	if err != nil {
 		log.Error().Err(err).Msg("failed to create database migrator")
 		return 1
