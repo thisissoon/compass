@@ -1,13 +1,14 @@
 package psql
 
 import (
+	"context"
 	"fmt"
 
-	"compass/logger"
 	"compass/namerd"
 	"compass/store"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog"
 	uuid "github.com/satori/go.uuid"
 )
 
@@ -109,13 +110,13 @@ func upsertDentry(db sqlx.Queryer, C chan namerd.Dtab, dentry *store.Dentry) (*s
 }
 
 // DentriesByDtab returns a slice of Dentry for the Delegation table
-func (store *DentryStore) DentriesByDtab(dtab string) (<-chan *store.Dentry, error) {
-	return dentriesByDtab(store.db, dtab)
+func (store *DentryStore) DentriesByDtab(ctx context.Context, dtab string) (<-chan *store.Dentry, error) {
+	return dentriesByDtab(ctx, store.db, dtab)
 }
 
 // dentriesByDtab
-func dentriesByDtab(db sqlx.Queryer, dtab string) (<-chan *store.Dentry, error) {
-	log := logger.New()
+func dentriesByDtab(ctx context.Context, db sqlx.Queryer, dtab string) (<-chan *store.Dentry, error) {
+	log := zerolog.Ctx(ctx)
 	rows, err := db.Queryx(DentryListByDtab, dtab)
 	if err != nil {
 		return nil, err

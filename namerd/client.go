@@ -2,7 +2,6 @@ package namerd
 
 import (
 	"bytes"
-	"compass/logger"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -98,7 +97,6 @@ func (c *Client) Dentries(dtab string) (Dentries, error) {
 
 // UpdateDentries updates a delegation tables dentries
 func (c *Client) UpdateDentries(dtab Dtab, dentries Dentries) error {
-	log := logger.New()
 	var body = new(bytes.Buffer)
 	enc := json.NewEncoder(body)
 	if err := enc.Encode(dentries); err != nil {
@@ -117,7 +115,6 @@ func (c *Client) UpdateDentries(dtab Dtab, dentries Dentries) error {
 	defer rsp.Body.Close()
 	switch rsp.StatusCode {
 	case http.StatusNoContent:
-		log.Debug().Int("code", rsp.StatusCode).Msg("updated delegation table")
 		return nil
 	default:
 		return fmt.Errorf("unexpected PUT response code: %s", rsp.StatusCode)

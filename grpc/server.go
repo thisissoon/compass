@@ -4,9 +4,8 @@ import (
 	"net"
 	"sync"
 
+	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
-
-	"compass/logger"
 
 	needle "compass/proto/needle/v1"
 )
@@ -33,17 +32,18 @@ type Server struct {
 }
 
 // Start starts serving the gRPC server
-func (s *Server) Serve() <-chan error {
+func (s *Server) Serve(log zerolog.Logger) <-chan error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
-	log := logger.New()
 	errC := make(chan error, 1)
 	ln, err := net.Listen("tcp", s.addr)
 	if err != nil {
 		errC <- err
 		return (<-chan error)(errC)
 	}
-	s.srv = grpc.NewServer()
+	s.srv = grpc.NewServer(
+		grpc.UnaryInterceptor(LogUnaryInterceptor(log)),
+		grpc.StreamInterceptor(LogStreamInyerceptor(log)))
 	needle.RegisterNeedleServiceServer(s.srv, s.ns)
 	go func() { // Start serving :)
 		log.Debug().Str("address", ln.Addr().String()).Msg("gRPC server started")

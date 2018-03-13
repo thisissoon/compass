@@ -1,7 +1,6 @@
 package main
 
 import (
-	"compass/logger"
 	"path/filepath"
 	"strings"
 
@@ -46,11 +45,10 @@ func init() {
 
 // readConfig loads configuraion from a file
 func readConfig() {
-	logger := logger.New()
 	if viper.GetString(configPathKey) != "" {
 		viper.SetConfigFile(viper.GetString(configPathKey))
 	}
 	if err := viper.ReadInConfig(); err != nil {
-		logger.Warn().Err(err).Msg("error reading configuration file")
+		log.Warn().Err(err).Msg("error reading configuration file")
 	}
 }

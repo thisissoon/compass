@@ -3,7 +3,6 @@ package sync
 import (
 	"context"
 
-	"compass/logger"
 	"compass/namerd"
 	"compass/store"
 
@@ -24,16 +23,17 @@ type Sync struct {
 }
 
 func (s *Sync) Start(ctx context.Context) {
-	s.log.Debug().Msg("starting dtab sync loop")
+	log := zerolog.Ctx(ctx)
+	log.Debug().Msg("starting dtab sync loop")
 	for {
 		select {
 		case <-ctx.Done():
-			s.log.Debug().Msg("stopped dtab sync loop")
+			log.Debug().Msg("stopped dtab sync loop")
 			return
 		case dtab := <-s.publisher.DtabUpdates():
-			s.log.Debug().Str("dtab", dtab.String()).Msg("sync dtab")
-			if err := syncDtab(s.store, s.namerd, dtab); err != nil {
-				s.log.Error().Err(err).Msg("error syncing dtab dentries")
+			log.Debug().Str("dtab", dtab.String()).Msg("sync dtab")
+			if err := syncDtab(ctx, s.store, s.namerd, dtab); err != nil {
+				log.Error().Err(err).Msg("error syncing dtab dentries")
 			}
 		}
 	}
@@ -44,12 +44,11 @@ func New(n *namerd.Client, s store.DentriesByDtabSelector, p DtabUpdatePublisher
 		namerd:    n,
 		store:     s,
 		publisher: p,
-		log:       logger.New(),
 	}
 }
 
-func syncDtab(s store.DentriesByDtabSelector, nd namerd.DentriesUpdator, dtab namerd.Dtab) error {
-	dC, err := s.DentriesByDtab(dtab.String())
+func syncDtab(ctx context.Context, s store.DentriesByDtabSelector, nd namerd.DentriesUpdator, dtab namerd.Dtab) error {
+	dC, err := s.DentriesByDtab(ctx, dtab.String())
 	if err != nil {
 		return err
 	}

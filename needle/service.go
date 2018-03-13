@@ -7,13 +7,11 @@ import (
 	"strconv"
 
 	"compass/k8s"
-	"compass/logger"
 	"compass/store"
 
 	needle "compass/proto/needle/v1"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
-	"github.com/rs/zerolog"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -41,18 +39,17 @@ type Service struct {
 
 // PutService creates or updates a service
 func (s *Service) PutService(ctx context.Context, req *needle.PutServiceRequest) (*needle.PutServiceResponse, error) {
-	return putService(s.store, req.GetService(), logger.New())
+	return putService(ctx, s.store, req.GetService())
 }
 
 // putService is the underlying logic for handling a gRPC put service request
-func putService(sp store.ServicePutter, s *needle.Service, log zerolog.Logger) (*needle.PutServiceResponse, error) {
+func putService(ctx context.Context, sp store.ServicePutter, s *needle.Service) (*needle.PutServiceResponse, error) {
 	svc, err := sp.PutService(&store.Service{
 		LogicalName: s.GetLogicalName(),
 		Namespace:   s.GetNamespace(),
 		Description: s.GetDescription(),
 	})
 	if err != nil {
-		log.Error().Err(err).Msg("failed to put service")
 		return nil, status.Error(codes.Internal, "unable to put service")
 	}
 	return &needle.PutServiceResponse{
@@ -69,11 +66,11 @@ func putService(sp store.ServicePutter, s *needle.Service, log zerolog.Logger) (
 
 // PutDentry creates or updates a dentry
 func (s *Service) PutDentry(ctx context.Context, req *needle.PutDentryRequest) (*needle.PutDentryResponse, error) {
-	return putDentry(s.store, req.GetDentry(), logger.New())
+	return putDentry(ctx, s.store, req.GetDentry())
 }
 
 // putDentry is the underlying logic for handling a gRPC put dentry request
-func putDentry(sp store.DentryPutter, d *needle.Dentry, log zerolog.Logger) (*needle.PutDentryResponse, error) {
+func putDentry(ctx context.Context, sp store.DentryPutter, d *needle.Dentry) (*needle.PutDentryResponse, error) {
 	dentry, err := sp.PutDentry(&store.Dentry{
 		Id:          uuid.FromStringOrNil(d.GetId()),
 		Dtab:        d.GetDtab(),
@@ -82,7 +79,6 @@ func putDentry(sp store.DentryPutter, d *needle.Dentry, log zerolog.Logger) (*ne
 		Priority:    d.GetPriority(),
 	})
 	if err != nil {
-		log.Error().Err(err).Msg("failed to put dentry")
 		return nil, status.Error(codes.Internal, "unable to put dentry")
 	}
 	return &needle.PutDentryResponse{
@@ -140,7 +136,6 @@ func (s *Service) RouteToVersion(ctx context.Context, req *needle.RouteToVersion
 // If a valid service is found with the required annotations then a dentry is
 // upserted and a dtab sync triggered to update the namerd dtab for the service
 func routeToVersion(s ServiceSelectorDentryPutter, sl k8s.ServiceLister, ln, ver string) (*needle.RouteToVersionResponse, error) {
-	log := logger.New()
 	// Get service by it's logical name
 	svc, err := s.GetByLogicalName(ln)
 	if err != nil {
@@ -161,7 +156,6 @@ func routeToVersion(s ServiceSelectorDentryPutter, sl k8s.ServiceLister, ln, ver
 		return nil, fmt.Errorf("expected 1 kubernetes service, found: %d", len(kServices))
 	}
 	ks := kServices[0]
-	log.Debug().Interface("annotations", ks.Annotations).Str("name", ks.GetName()).Msg("found kubernetets service")
 	// Lookup the dtab annotation so we know what dtab the dentry is managed within
 	dtab, ok := ks.Annotations[DtabAnnotation]
 	if !ok {
@@ -219,7 +213,7 @@ func (n *Service) DelegationTables(ctx context.Context, req *needle.DelegationTa
 
 // Dentries returns a list of dentries for a delegation table
 func (n *Service) Dentries(ctx context.Context, req *needle.DentriesRequest) (*needle.DentriesResponse, error) {
-	dCh, err := n.store.DentriesByDtab(req.GetDtab())
+	dCh, err := n.store.DentriesByDtab(ctx, req.GetDtab())
 	if err != nil {
 		return nil, err
 	}

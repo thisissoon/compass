@@ -2,19 +2,21 @@ package main
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"syscall"
 
 	"compass/grpc"
 	"compass/k8s"
-	"compass/logger"
 	"compass/namerd"
 	"compass/needle"
 	"compass/store/psql"
 	"compass/sync"
+	"compass/version"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -22,9 +24,44 @@ import (
 // OS Signal Channel
 var sigC = make(chan os.Signal)
 
+// Common Logger
+var log = zerolog.New(os.Stdout).With().Fields(map[string]interface{}{
+	"version": version.Version(),
+	"commit":  version.Commit(),
+}).Timestamp().Logger()
+
 // Application entry point
 func main() {
 	needleCmd().Execute()
+}
+
+// setup reads configuration and updates logger output
+func setup() {
+	readConfig()
+	switch viper.GetString(logFormatKey) {
+	case "discard":
+		log = log.Output(ioutil.Discard)
+	case "console":
+		log = log.Output(zerolog.ConsoleWriter{
+			Out: os.Stdout,
+		})
+	}
+}
+
+// dbDSN returns the database connection url
+func dbDSN() psql.DSN {
+	return psql.DSN{
+		Name:     viper.GetString(dbNameKey),
+		Host:     viper.GetString(dbHostKey),
+		Username: viper.GetString(dbUserKey),
+		Password: viper.GetString(dbPassKey),
+		SSLMode:  viper.GetString(dbSSLModeKey),
+	}
+}
+
+// openDB opens a database connection
+func openDB() (*sqlx.DB, error) {
+	return psql.Open(dbDSN())
 }
 
 // New constructs a new CLI interface for execution
@@ -55,30 +92,13 @@ func needleCmd() *cobra.Command {
 	return cmd
 }
 
-// dbDSN returns the database connection url
-func dbDSN() psql.DSN {
-	return psql.DSN{
-		Name:     viper.GetString(dbNameKey),
-		Host:     viper.GetString(dbHostKey),
-		Username: viper.GetString(dbUserKey),
-		Password: viper.GetString(dbPassKey),
-		SSLMode:  viper.GetString(dbSSLModeKey),
-	}
-}
-
-// openDB opens a database connection
-func openDB() (*sqlx.DB, error) {
-	return psql.Open(dbDSN())
-}
-
 // startNeedle starts the needle gRPC server
 // returns os exit code
 func startNeedle() int {
-	readConfig()
+	setup()
 	ctx, cancel := context.WithCancel(context.Background())
-	log := logger.New()
+	ctx = log.WithContext(ctx)
 	db, err := openDB()
-
 	if err != nil {
 		log.Error().Err(err).Msg("failed to open database connection")
 		return 1
@@ -99,7 +119,7 @@ func startNeedle() int {
 	srv := grpc.NewServer(
 		needle.NewService(store, kc),
 		grpc.WithAddress(viper.GetString(grpcListenKey)))
-	errC := srv.Serve()
+	errC := srv.Serve(log)
 	defer srv.Stop()
 	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer cancel()

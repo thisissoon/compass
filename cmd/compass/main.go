@@ -3,14 +3,17 @@ package main
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 
 	"compass/grpc"
 	"compass/k8s/portforward"
 	"compass/k8s/tunnel"
+	"compass/version"
 
 	needlepb "compass/proto/needle/v1"
 
+	"github.com/rs/zerolog"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 
@@ -24,6 +27,12 @@ var (
 	client needlepb.NeedleServiceClient
 )
 
+// Common Logger
+var log = zerolog.New(os.Stdout).With().Fields(map[string]interface{}{
+	"version": version.Version(),
+	"commit":  version.Commit(),
+}).Timestamp().Logger()
+
 // Application entry point
 func main() {
 	compassCmd().Execute()
@@ -31,6 +40,15 @@ func main() {
 
 // setup opens a port forward to needle
 func setup(cmd *cobra.Command, _ []string) error {
+	readConfig()
+	switch viper.GetString(logFormatKey) {
+	case "discard":
+		log = log.Output(ioutil.Discard)
+	case "console":
+		log = log.Output(zerolog.ConsoleWriter{
+			Out: os.Stdout,
+		})
+	}
 	t, err := portforward.New(portforward.Options{
 		Namespace: viper.GetString(kubeNamespaceKey),
 		Context:   viper.GetString(kubeContextKey),

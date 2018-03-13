@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"time"
 
 	uuid "github.com/satori/go.uuid"
@@ -11,7 +12,7 @@ type (
 		PutDentry(*Dentry) (*Dentry, error)
 	}
 	DentriesByDtabSelector interface {
-		DentriesByDtab(dtab string) (<-chan *Dentry, error)
+		DentriesByDtab(ctx context.Context, dtab string) (<-chan *Dentry, error)
 	}
 	DentryByIdDeletor interface {
 		DeleteDentryById(id uuid.UUID) (int64, error)
