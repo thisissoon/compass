@@ -8,7 +8,7 @@ ARG BUILD_COMMIT
 RUN apk update && apk add build-base libressl-dev
 WORKDIR /go/src/compass
 COPY ./ /go/src/compass
-RUN COMPRESS_BINARY=1 GOBUILD_VERBOSE=1 BIN_NAME=bin make ${APP}
+RUN COMPRESS_BINARY=1 GOBUILD_VERBOSE=1 BIN_DIR=/usr/local/bin BIN_NAME=${APP} make ${APP}
 
 # Stage 2 - Final Image
 # The application should be statically linked
@@ -16,5 +16,5 @@ FROM alpine:3.6
 ARG APP
 ENV ENTRYPOINT ${APP}
 RUN apk update && apk add --no-cache ca-certificates && rm -rf /var/cache/apk/*
-COPY --from=builder /go/src/compass/bin /usr/bin/${APP}
+COPY --from=builder /usr/local/bin/${APP} /usr/local/bin/${APP}
 ENTRYPOINT $ENTRYPOINT

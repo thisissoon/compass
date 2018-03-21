@@ -1,8 +1,6 @@
 # Compilation Flags
 GOOS            ?= $(shell go env GOOS)
 GOARCH          ?= $(shell go env GOARCH)
-# Flags
-FLAGS           ?=
 # Build Vars
 BUILD_TIME      ?= $(shell date +%s)
 BUILD_VERSION   ?= $(shell head -n 1 VERSION | tr -d "\n")
@@ -15,6 +13,8 @@ LDFLAGS += -X compass/pkg/version.commit=$(BUILD_COMMIT)
 # Go Build Flags
 GOBUILD_FLAGS ?= -tags netgo -installsuffix netgo
 GOBUILD_FLAGS += -installsuffix netgo
+# Bin Dir
+BIN_DIR ?= ./_bin
 # Compress Binry
 COMPRESS_BINARY ?= 0
 # Verbose build output
@@ -43,31 +43,27 @@ test:
 ifeq ("$(wildcard $(shell which gocov))","")
 	go get github.com/axw/gocov/gocov
 endif
-	ADMINAUTHENTICATOR_LOG_FORMAT=discard \
-		gocov test -v ./... | gocov report
+	gocov test -v ./... | gocov report
 
-common-build-flags:
+build-flags:
 ifeq ($(GOBUILD_VERBOSE),1)
 	$(eval GOBUILD_FLAGS += -v)
 endif
 
-common-ldflags:
+ldflags:
 ifeq ($(COMPRESS_BINARY),1)
 	$(eval LDFLAGS += -a -w -s)
 endif
 
-compass-ldflags:
-	$(eval LDFLAGS += -X compass/config.filename=compass)
-	$(eval LDFLAGS += -X compass/config.envprefix=compass)
-
-compass: common-build-flags common-ldflags compass-ldflags |
+compass: build-flags ldflags |
 	$(eval BIN_NAME ?= compass.$(BUILD_VERSION).$(GOOS)-$(GOARCH))
+	@mkdir -p $(BIN_DIR)
 	CGO_ENABLED=0 \
 	GOOS=$(GOOS) \
 	GOARCH=$(GOARCH) \
 	go build $(GOBUILD_FLAGS) \
 		-ldflags "$(LDFLAGS)" \
-		-o "$(BIN_NAME)" \
+		-o "$(BIN_DIR)/$(BIN_NAME)" \
 		./cmd/compass
 
 compass-image:
@@ -79,18 +75,15 @@ compass-image:
 		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
 		-t soon/compass:$(BUILD_VERSION) .
 
-needle-ldflags:
-	$(eval LDFLAGS += -X compass/config.filename=needle)
-	$(eval LDFLAGS += -X compass/config.envprefix=needle)
-
-needle: common-build-flags common-ldflags needle-ldflags |
+needle: build-flags ldflags |
 	$(eval BIN_NAME ?= needle.$(BUILD_VERSION).$(GOOS)-$(GOARCH))
+	@mkdir -p $(BIN_DIR)
 	CGO_ENABLED=0 \
 	GOOS=$(GOOS) \
 	GOARCH=$(GOARCH) \
 	go build $(GOBUILD_FLAGS) \
 		-ldflags "$(LDFLAGS)" \
-		-o "$(BIN_NAME)" \
+		-o "$(BIN_DIR)/$(BIN_NAME)" \
 		./cmd/needle
 
 needle-image:
@@ -101,17 +94,3 @@ needle-image:
 		--build-arg BUILD_VERSION=$(BUILD_VERSION) \
 		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
 		-t soon/needle:$(BUILD_VERSION) .
-
-needle-install-bin-name:
-	$(eval BIN_NAME = needle.$(BUILD_VERSION).$(GOOS)-$(GOARCH))
-
-compass-install-bin-name:
-	$(eval BIN_NAME = compass.$(BUILD_VERSION).$(GOOS)-$(GOARCH))
-
-install-compass: compass-install-bin-name | compass
-	mv $(BIN_NAME) ~/.local/bin/compass
-
-install-needle: needle-install-bin-name | needle
-	mv $(BIN_NAME) ~/.local/bin/needle
-
-install: install-compass install-needle
