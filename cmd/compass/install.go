@@ -4,8 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"compass/k8s"
-	"compass/needle/install"
+	"compass/pkg/kube"
 
 	"github.com/spf13/cobra"
 )
@@ -30,19 +29,19 @@ func installCmd() *cobra.Command {
 
 func installCompass(namespace string, rbac bool) int {
 	fmt.Println("Installing needle, the compass server into the cluster...")
-	client, err := k8s.Clientset()
+	client, err := kube.Clientset()
 	if err != nil {
 		fmt.Println(err)
 		return 1
 	}
-	var opts []install.Option
+	var opts []kube.InstallOption
 	if namespace != "" {
-		opts = append(opts, install.WithNamespace(namespace))
+		opts = append(opts, kube.WithInstallNamespace(namespace))
 	}
 	if rbac {
-		opts = append(opts, install.WithRBAC())
+		opts = append(opts, kube.WithInstallRBAC())
 	}
-	if err := install.Install(client, opts...); err != nil {
+	if err := kube.Install(client, opts...); err != nil {
 		fmt.Println(err)
 		return 1
 	}

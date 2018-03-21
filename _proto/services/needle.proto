@@ -1,31 +1,25 @@
 syntax = "proto3";
 
-package compass.needle.v1;
+package services.needle;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "needle/v1;needle";
+option go_package = "services";
 
-// NeedleService the brains behind compass
-service NeedleService {
+// DentryManager manages dentries
+service DentryService {
   // PutService upserts services to be managed
   rpc PutService(PutServiceRequest) returns (PutServiceResponse) {}
-
-  // PutDentry upserts dentries to be managed
-  rpc PutDentry(PutDentryRequest) returns (PutDentryResponse) {}
-
   // DelegationTables returns a list of delegation tables we are managing
   rpc DelegationTables(DelegationTablesRequest) returns (DelegationTablesResponse) {}
-
   // Dentries returns for a dtab
   rpc Dentries(DentriesRequest) returns (DentriesResponse) {}
-
+  // PutDentry upserts dentries to be managed
+  rpc PutDentry(PutDentryRequest) returns (PutDentryResponse) {}
   // DeleteDentryById deletes a dentry by it's UUID
   rpc DeleteDentryById(DeleteDentryByIdRequest) returns (DeleteDentryByIdResponse) {}
-
   // DeleteDentryByPrefix deletes a dentry by prefix within a dtab
   rpc DeleteDentryByPrefix(DeleteDentryByPrefixRequest) returns (DeleteDentryByPrefixResponse) {}
-
   // RouteToVersion routes a specific logical name to a specifc lubernetets services
   // based on a services logicalName and version labels
   rpc RouteToVersion(RouteToVersionRequest) returns (RouteToVersionResponse) {}

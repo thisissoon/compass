@@ -1,4 +1,4 @@
-package needle
+package service
 
 import (
 	"context"
@@ -6,16 +6,20 @@ import (
 	"fmt"
 	"strconv"
 
-	"compass/k8s"
-	"compass/store"
+	"compass/pkg/store"
 
-	needle "compass/proto/needle/v1"
+	pb "compass/pkg/proto/services"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/apimachinery/pkg/labels"
+	"k8s.io/client-go/kubernetes"
 
 	uuid "github.com/satori/go.uuid"
+	apiv1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	typedv1 "k8s.io/client-go/kubernetes/typed/core/v1"
 )
 
 const (
@@ -25,25 +29,33 @@ const (
 	PortNameAnnotation       = "compass.thisissoon.com/port-name"
 )
 
+var (
+	ErrServiceNotFound                 = errors.New("kubernetets service not found")
+	ErrMultipleServicesFound           = errors.New("Too many kubernetets services found")
+	ErrMissingDtabAnnotation           = fmt.Errorf("service missing annotation: %s", DtabAnnotation)
+	ErrMissingDentryPriorityAnnotation = fmt.Errorf("service missing annotation: %s", DentryPriorityAnnotation)
+	ErrMissingPortNameAnnotation       = fmt.Errorf("service missing annotation: %s", PortNameAnnotation)
+)
+
 type ServiceSelectorDentryPutter interface {
 	store.ServiceSelector
 	store.DentryPutter
 }
 
-// Manager implements the needle.NeedleServiceServer interface
+// Manager implements the pb.NeedleServiceServer interface
 // and thus handles gRPC requests
 type Service struct {
 	store store.Store
-	k8s   *k8s.Client
+	k8s   *kubernetes.Clientset
 }
 
 // PutService creates or updates a service
-func (s *Service) PutService(ctx context.Context, req *needle.PutServiceRequest) (*needle.PutServiceResponse, error) {
+func (s *Service) PutService(ctx context.Context, req *pb.PutServiceRequest) (*pb.PutServiceResponse, error) {
 	return putService(ctx, s.store, req.GetService())
 }
 
 // putService is the underlying logic for handling a gRPC put service request
-func putService(ctx context.Context, sp store.ServicePutter, s *needle.Service) (*needle.PutServiceResponse, error) {
+func putService(ctx context.Context, sp store.ServicePutter, s *pb.Service) (*pb.PutServiceResponse, error) {
 	svc, err := sp.PutService(&store.Service{
 		LogicalName: s.GetLogicalName(),
 		Namespace:   s.GetNamespace(),
@@ -52,8 +64,8 @@ func putService(ctx context.Context, sp store.ServicePutter, s *needle.Service) 
 	if err != nil {
 		return nil, status.Error(codes.Internal, "unable to put service")
 	}
-	return &needle.PutServiceResponse{
-		Service: &needle.Service{
+	return &pb.PutServiceResponse{
+		Service: &pb.Service{
 			Id:          svc.Id.String(),
 			CreateDate:  &timestamp.Timestamp{Seconds: svc.CreateDate.Unix()},
 			UpdateDate:  &timestamp.Timestamp{Seconds: svc.UpdateDate.Unix()},
@@ -65,12 +77,12 @@ func putService(ctx context.Context, sp store.ServicePutter, s *needle.Service) 
 }
 
 // PutDentry creates or updates a dentry
-func (s *Service) PutDentry(ctx context.Context, req *needle.PutDentryRequest) (*needle.PutDentryResponse, error) {
+func (s *Service) PutDentry(ctx context.Context, req *pb.PutDentryRequest) (*pb.PutDentryResponse, error) {
 	return putDentry(ctx, s.store, req.GetDentry())
 }
 
 // putDentry is the underlying logic for handling a gRPC put dentry request
-func putDentry(ctx context.Context, sp store.DentryPutter, d *needle.Dentry) (*needle.PutDentryResponse, error) {
+func putDentry(ctx context.Context, sp store.DentryPutter, d *pb.Dentry) (*pb.PutDentryResponse, error) {
 	dentry, err := sp.PutDentry(&store.Dentry{
 		Id:          uuid.FromStringOrNil(d.GetId()),
 		Dtab:        d.GetDtab(),
@@ -81,8 +93,8 @@ func putDentry(ctx context.Context, sp store.DentryPutter, d *needle.Dentry) (*n
 	if err != nil {
 		return nil, status.Error(codes.Internal, "unable to put dentry")
 	}
-	return &needle.PutDentryResponse{
-		Dentry: &needle.Dentry{
+	return &pb.PutDentryResponse{
+		Dentry: &pb.Dentry{
 			Id:          dentry.Id.String(),
 			CreateDate:  &timestamp.Timestamp{Seconds: dentry.CreateDate.Unix()},
 			UpdateDate:  &timestamp.Timestamp{Seconds: dentry.UpdateDate.Unix()},
@@ -95,86 +107,98 @@ func putDentry(ctx context.Context, sp store.DentryPutter, d *needle.Dentry) (*n
 }
 
 // DeleteDentryById deletes a dentry by Id
-func (s *Service) DeleteDentryById(ctx context.Context, req *needle.DeleteDentryByIdRequest) (*needle.DeleteDentryByIdResponse, error) {
+func (s *Service) DeleteDentryById(ctx context.Context, req *pb.DeleteDentryByIdRequest) (*pb.DeleteDentryByIdResponse, error) {
 	return deleteDentryById(s.store, req.GetId())
 }
 
 // deleteDentryById deletes a dentry by Id
-func deleteDentryById(db store.DentryByIdDeletor, id string) (*needle.DeleteDentryByIdResponse, error) {
+func deleteDentryById(db store.DentryByIdDeletor, id string) (*pb.DeleteDentryByIdResponse, error) {
 	affected, err := db.DeleteDentryById(uuid.FromStringOrNil(id))
 	if err != nil {
 		return nil, err
 	}
-	return &needle.DeleteDentryByIdResponse{
+	return &pb.DeleteDentryByIdResponse{
 		Deleted: (affected > 0),
 	}, nil
 }
 
 // DeleteDentryByPrefix deletes dentry by prefix
-func (s *Service) DeleteDentryByPrefix(ctx context.Context, req *needle.DeleteDentryByPrefixRequest) (*needle.DeleteDentryByPrefixResponse, error) {
+func (s *Service) DeleteDentryByPrefix(ctx context.Context, req *pb.DeleteDentryByPrefixRequest) (*pb.DeleteDentryByPrefixResponse, error) {
 	return deleteDentryByPrefix(s.store, req.GetDtab(), req.GetPrefix())
 }
 
 // deleteDentryByPrefix deletes dentry by prefix
-func deleteDentryByPrefix(db store.DentryByPrefixDeletor, dtab, prefix string) (*needle.DeleteDentryByPrefixResponse, error) {
+func deleteDentryByPrefix(db store.DentryByPrefixDeletor, dtab, prefix string) (*pb.DeleteDentryByPrefixResponse, error) {
 	affected, err := db.DeleteDentryByPrefix(dtab, prefix)
 	if err != nil {
 		return nil, err
 	}
-	return &needle.DeleteDentryByPrefixResponse{
+	return &pb.DeleteDentryByPrefixResponse{
 		Deleted: (affected > 0),
 	}, nil
 }
 
 // RouteToVersion routes a service to a specified version
-func (s *Service) RouteToVersion(ctx context.Context, req *needle.RouteToVersionRequest) (*needle.RouteToVersionResponse, error) {
-	return routeToVersion(s.store, s.k8s, req.GetLogicalName(), req.GetVersion())
+func (s *Service) RouteToVersion(ctx context.Context, req *pb.RouteToVersionRequest) (*pb.RouteToVersionResponse, error) {
+	return routeToVersion(
+		s.store,
+		s.k8s,
+		req.GetLogicalName(),
+		req.GetVersion())
+}
+
+func getKubeService(si typedv1.ServiceInterface, labels labels.Set) (*apiv1.Service, error) {
+	services, err := si.List(metav1.ListOptions{
+		LabelSelector: labels.AsSelector().String(),
+	})
+	if err != nil {
+		return nil, err
+	}
+	if l := len(services.Items); l == 0 {
+		return nil, ErrServiceNotFound
+	} else if l > 1 {
+		return nil, ErrMultipleServicesFound
+	}
+	svc := services.Items[0]
+	return &svc, nil
 }
 
 // routeToVersion queries kubernetets for service matching the provided
 // logical name and version.
 // If a valid service is found with the required annotations then a dentry is
 // upserted and a dtab sync triggered to update the namerd dtab for the service
-func routeToVersion(s ServiceSelectorDentryPutter, sl k8s.ServiceLister, ln, ver string) (*needle.RouteToVersionResponse, error) {
+func routeToVersion(s ServiceSelectorDentryPutter, cs *kubernetes.Clientset, ln, ver string) (*pb.RouteToVersionResponse, error) {
 	// Get service by it's logical name
 	svc, err := s.GetByLogicalName(ln)
 	if err != nil {
 		return nil, err
 	}
-	// Find coresponding service by service logical name and the version
-	kServices, err := sl.ListServices(
-		svc.Namespace,
-		k8s.Selectors{
+	// Get kubernetets service
+	ksvc, err := getKubeService(
+		cs.CoreV1().Services(svc.Namespace),
+		labels.Set{
 			"logicalName": svc.LogicalName,
 			"version":     ver,
 		})
-	if err != nil {
-		return nil, err
-	}
-	// Ensure we have only 1 service
-	if len(kServices) != 1 {
-		return nil, fmt.Errorf("expected 1 kubernetes service, found: %d", len(kServices))
-	}
-	ks := kServices[0]
 	// Lookup the dtab annotation so we know what dtab the dentry is managed within
-	dtab, ok := ks.Annotations[DtabAnnotation]
+	dtab, ok := ksvc.Annotations[DtabAnnotation]
 	if !ok {
-		return nil, fmt.Errorf("missing required annotation: %s", DtabAnnotation)
+		return nil, ErrMissingDtabAnnotation
 	}
 	// Lookup the port-name annotation so we know what port-name to store in the dentry
-	portName, ok := ks.Annotations[PortNameAnnotation]
+	portName, ok := ksvc.Annotations[PortNameAnnotation]
 	if !ok {
-		return nil, fmt.Errorf("missing required annotation: %s", PortNameAnnotation)
+		return nil, ErrMissingPortNameAnnotation
 	}
 	// Lookup the prefix annotation with a default prefix being the service logical name
 	prefix := fmt.Sprintf("/%s", svc.LogicalName)
-	if prefixAnnotation, ok := ks.Annotations[DentryPrefixAnnotation]; ok {
+	if prefixAnnotation, ok := ksvc.Annotations[DentryPrefixAnnotation]; ok {
 		prefix = prefixAnnotation
 	}
 	// Lookup priority annotation so we we can place the dentry in the appropriate place in teh dtab
-	priorityStr, ok := ks.Annotations[DentryPriorityAnnotation]
+	priorityStr, ok := ksvc.Annotations[DentryPriorityAnnotation]
 	if !ok {
-		return nil, fmt.Errorf("missing required annotation: %s", DentryPriorityAnnotation)
+		return nil, ErrMissingDentryPriorityAnnotation
 	}
 	priority, err := strconv.Atoi(priorityStr)
 	if err != nil {
@@ -183,7 +207,7 @@ func routeToVersion(s ServiceSelectorDentryPutter, sl k8s.ServiceLister, ln, ver
 	// Put the dentry to storage
 	_, err = s.PutDentry(&store.Dentry{
 		Prefix:      prefix,
-		Destination: fmt.Sprintf("/#/io.l5d.k8s/%s/%s/%s", ks.Namespace, portName, ks.Name),
+		Destination: fmt.Sprintf("/#/io.l5d.k8s/%s/%s/%s", ksvc.Namespace, portName, ksvc.Name),
 		Dtab:        dtab,
 		Priority:    int32(priority),
 	})
@@ -191,35 +215,35 @@ func routeToVersion(s ServiceSelectorDentryPutter, sl k8s.ServiceLister, ln, ver
 		return nil, err
 	}
 	// Return response
-	return &needle.RouteToVersionResponse{}, nil
+	return &pb.RouteToVersionResponse{}, nil
 }
 
 // DelegationTables returns a list of delgation tables managed by needle
-func (n *Service) DelegationTables(ctx context.Context, req *needle.DelegationTablesRequest) (*needle.DelegationTablesResponse, error) {
+func (n *Service) DelegationTables(ctx context.Context, req *pb.DelegationTablesRequest) (*pb.DelegationTablesResponse, error) {
 	tables, err := n.store.DelegationTables()
 	if err != nil {
 		return nil, err
 	}
-	var dtabs []*needle.DelegationTable
+	var dtabs []*pb.DelegationTable
 	for _, t := range tables {
-		dtabs = append(dtabs, &needle.DelegationTable{
+		dtabs = append(dtabs, &pb.DelegationTable{
 			Name: t,
 		})
 	}
-	return &needle.DelegationTablesResponse{
+	return &pb.DelegationTablesResponse{
 		DelegationTables: dtabs,
 	}, nil
 }
 
 // Dentries returns a list of dentries for a delegation table
-func (n *Service) Dentries(ctx context.Context, req *needle.DentriesRequest) (*needle.DentriesResponse, error) {
+func (n *Service) Dentries(ctx context.Context, req *pb.DentriesRequest) (*pb.DentriesResponse, error) {
 	dCh, err := n.store.DentriesByDtab(ctx, req.GetDtab())
 	if err != nil {
 		return nil, err
 	}
-	var dentries []*needle.Dentry
+	var dentries []*pb.Dentry
 	for dentry := range dCh {
-		dentries = append(dentries, &needle.Dentry{
+		dentries = append(dentries, &pb.Dentry{
 			Id:          dentry.Id.String(),
 			CreateDate:  &timestamp.Timestamp{Seconds: dentry.CreateDate.Unix()},
 			UpdateDate:  &timestamp.Timestamp{Seconds: dentry.UpdateDate.Unix()},
@@ -229,13 +253,13 @@ func (n *Service) Dentries(ctx context.Context, req *needle.DentriesRequest) (*n
 			Priority:    dentry.Priority,
 		})
 	}
-	return &needle.DentriesResponse{
+	return &pb.DentriesResponse{
 		Dentries: dentries,
 	}, nil
 }
 
 // NewService returns a new Manager
-func NewService(store store.Store, k8s *k8s.Client) *Service {
+func New(store store.Store, k8s *kubernetes.Clientset) *Service {
 	return &Service{
 		store: store,
 		k8s:   k8s,

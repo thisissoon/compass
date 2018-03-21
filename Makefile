@@ -9,9 +9,9 @@ BUILD_VERSION   ?= $(shell head -n 1 VERSION | tr -d "\n")
 BUILD_COMMIT    ?= $(shell git rev-parse HEAD)
 # LDFlags
 LDFLAGS ?= -d
-LDFLAGS += -X compass/version.timestamp=$(BUILD_TIME)
-LDFLAGS += -X compass/version.version=$(BUILD_VERSION)
-LDFLAGS += -X compass/version.commit=$(BUILD_COMMIT)
+LDFLAGS += -X compass/pkg/version.timestamp=$(BUILD_TIME)
+LDFLAGS += -X compass/pkg/version.version=$(BUILD_VERSION)
+LDFLAGS += -X compass/pkg/version.commit=$(BUILD_COMMIT)
 # Go Build Flags
 GOBUILD_FLAGS ?= -tags netgo -installsuffix netgo
 GOBUILD_FLAGS += -installsuffix netgo
@@ -20,28 +20,23 @@ COMPRESS_BINARY ?= 0
 # Verbose build output
 GOBUILD_VERBOSE ?= 0
 
+# Generate protobuf code
+.PHONY: protoc
+protoc:
+	$(MAKE) -C _proto/ all
+
+# Generate database migrations
 .PHONY: migrations
+migrations:
+	$(MAKE) -C _migrations/ all
 
 # Run dep ensure and prun unneeded dependencies
+.PHONY: ensure
 ensure:
 ifeq ("$(wildcard $(shell which dep))","")
 	go get github.com/golang/dep/cmd/dep
 endif
 	dep ensure -v
-
-# Compile protobuf to go
-protoc:
-ifeq ("$(wildcard $(shell which protoc-gen-go))","")
-	go get github.com/golang/protobuf/protoc-gen-go
-endif
-	protoc -I .:/usr/local/include --go_out=plugins=grpc:./proto $(shell find . -type f -name '*.proto')
-
-# Generate migration code
-migrations:
-ifeq ("$(wildcard $(shell which go-bindata))","")
-	go get github.com/jteeuwen/go-bindata/go-bindata
-endif
-	go-bindata -pkg=migrations -prefix=migrations/ -o=store/psql/migrations/migrations.go ./migrations
 
 # Run test suite
 test:

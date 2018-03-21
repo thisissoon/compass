@@ -7,13 +7,12 @@ import (
 	"os/signal"
 	"syscall"
 
-	"compass/grpc"
-	"compass/k8s"
-	"compass/namerd"
-	"compass/needle"
-	"compass/store/psql"
-	"compass/sync"
-	"compass/version"
+	"compass/pkg/kube"
+	"compass/pkg/namerd"
+	"compass/pkg/server"
+	"compass/pkg/service"
+	"compass/pkg/store/psql"
+	"compass/pkg/version"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
@@ -108,17 +107,16 @@ func startNeedle() int {
 	nd := namerd.New(
 		namerd.WithHost(viper.GetString(namerdHostKey)),
 		namerd.WithScheme(viper.GetString(namerdSchemeKey)))
-	syncer := sync.New(nd, store, store)
+	syncer := namerd.Syncer(nd, store, store)
 	go syncer.Start(ctx)
-	kcc, err := k8s.Clientset()
+	kcc, err := kube.Clientset()
 	if err != nil {
 		log.Error().Err(err).Msg("failed to obtain kubernetes configuration")
 		return 1
 	}
-	kc := k8s.New(kcc)
-	srv := grpc.NewServer(
-		needle.NewService(store, kc),
-		grpc.WithAddress(viper.GetString(grpcListenKey)))
+	srv := server.New(
+		service.New(store, kcc),
+		server.WithAddress(viper.GetString(grpcListenKey)))
 	errC := srv.Serve(log)
 	defer srv.Stop()
 	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)

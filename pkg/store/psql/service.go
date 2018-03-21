@@ -3,7 +3,7 @@ package psql
 import (
 	"fmt"
 
-	"compass/store"
+	"compass/pkg/store"
 
 	"github.com/jmoiron/sqlx"
 )

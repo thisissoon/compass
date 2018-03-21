@@ -3,8 +3,6 @@ package psql
 import (
 	"strings"
 
-	"compass/store/psql/migrations"
-
 	"github.com/mattes/migrate"
 	"github.com/rs/zerolog"
 
@@ -32,9 +30,9 @@ func (l *MigrateLogger) Verbose() bool {
 // Migrate runs database migrat
 func NewMigrator(dsn DSN, log *MigrateLogger) (*migrate.Migrate, error) {
 	// Get migration files from go-bindata codegen
-	resource := bindata.Resource(migrations.AssetNames(),
+	resource := bindata.Resource(AssetNames(),
 		func(name string) ([]byte, error) {
-			return migrations.Asset(name)
+			return Asset(name)
 		})
 	// Generate a source from the bindata
 	source, err := bindata.WithInstance(resource)

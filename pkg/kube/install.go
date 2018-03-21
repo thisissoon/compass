@@ -1,11 +1,11 @@
-package install
+package kube
 
 import (
 	"fmt"
 	"math/rand"
 	"time"
 
-	"compass/version"
+	"compass/pkg/version"
 
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
@@ -18,8 +18,8 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 
-// Options configures the installation of needle into a k8s cluster
-type Options struct {
+// InstallOptions configures the installation of needle into a k8s cluster
+type InstallOptions struct {
 	Namespace          string
 	RBAC               bool
 	ServiceAccountName string
@@ -33,7 +33,7 @@ type Options struct {
 }
 
 // Default install options - these can be modified using Option functions
-var DefaultOptions = Options{
+var DefaultInstallOptions = InstallOptions{
 	Namespace: "kube-system",
 	Labels: map[string]string{
 		"name": "needle",
@@ -49,47 +49,47 @@ var DefaultOptions = Options{
 	PGPWSecretKey:      "password",
 }
 
-// An Option can configure Options
-type Option func(*Options)
+// An Option can configure InstallOptions
+type InstallOption func(*InstallOptions)
 
 // WithNamespace sets the namespace needle should be installed into
-func WithNamespace(name string) Option {
-	return func(opts *Options) {
+func WithInstallNamespace(name string) InstallOption {
+	return func(opts *InstallOptions) {
 		opts.Namespace = name
 	}
 }
 
 // WithServiceAccount sets the service account name
-func WithServiceAccount(name string) Option {
-	return func(opts *Options) {
+func WithInastallServiceAccount(name string) InstallOption {
+	return func(opts *InstallOptions) {
 		opts.ServiceAccountName = name
 	}
 }
 
 // WithDeploymentName sets the deployment name
-func WithDeploymentName(name string) Option {
-	return func(opts *Options) {
+func WithInstallDeploymentName(name string) InstallOption {
+	return func(opts *InstallOptions) {
 		opts.ServiceAccountName = name
 	}
 }
 
 // WithLabels sets the labels used for the needle install
-func WithLabels(labels map[string]string) Option {
-	return func(opts *Options) {
+func WithInstallLabels(labels map[string]string) InstallOption {
+	return func(opts *InstallOptions) {
 		opts.Labels = labels
 	}
 }
 
 // WithRBAC enables RBAC roles to be created for needle on install
-func WithRBAC() Option {
-	return func(opts *Options) {
+func WithInstallRBAC() InstallOption {
+	return func(opts *InstallOptions) {
 		opts.RBAC = true
 	}
 }
 
 // Install will intall neeedle into a k8s cluster
-func Install(client *kubernetes.Clientset, opts ...Option) error {
-	var options = DefaultOptions
+func Install(client *kubernetes.Clientset, opts ...InstallOption) error {
+	var options = DefaultInstallOptions
 	for _, opt := range opts {
 		opt(&options)
 	}
@@ -145,7 +145,7 @@ func handleError(err error) error {
 }
 
 // createNamespace creates a namespace within a k8s cluster
-func createNamespace(c *kubernetes.Clientset, opts Options) error {
+func createNamespace(c *kubernetes.Clientset, opts InstallOptions) error {
 	_, err := c.CoreV1().Namespaces().Create(&apiv1.Namespace{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   opts.Namespace,
@@ -156,7 +156,7 @@ func createNamespace(c *kubernetes.Clientset, opts Options) error {
 }
 
 // createServiceAccount create a service account
-func createServiceAccount(c *kubernetes.Clientset, opts Options) error {
+func createServiceAccount(c *kubernetes.Clientset, opts InstallOptions) error {
 	_, err := c.CoreV1().ServiceAccounts(opts.Namespace).Create(&apiv1.ServiceAccount{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   opts.ServiceAccountName,
@@ -167,7 +167,7 @@ func createServiceAccount(c *kubernetes.Clientset, opts Options) error {
 }
 
 // createServiceAccount create a service account
-func createRole(c *kubernetes.Clientset, opts Options) error {
+func createRole(c *kubernetes.Clientset, opts InstallOptions) error {
 	_, err := c.RbacV1beta1().ClusterRoles().Create(&rbacv1beta1.ClusterRole{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   "needle:services:reader",
@@ -192,7 +192,7 @@ func createRole(c *kubernetes.Clientset, opts Options) error {
 }
 
 // Creates a role binding between the service account and role
-func createRoleBinding(c *kubernetes.Clientset, opts Options) error {
+func createRoleBinding(c *kubernetes.Clientset, opts InstallOptions) error {
 	var name = "needle:services:reader"
 	_, err := c.RbacV1beta1().ClusterRoleBindings().Create(&rbacv1beta1.ClusterRoleBinding{
 		ObjectMeta: metav1.ObjectMeta{
@@ -216,7 +216,7 @@ func createRoleBinding(c *kubernetes.Clientset, opts Options) error {
 }
 
 // createPVClaim creates a persisntent volume claim for postgres
-func createPVClaim(c *kubernetes.Clientset, opts Options) error {
+func createPVClaim(c *kubernetes.Clientset, opts InstallOptions) error {
 	_, err := c.CoreV1().PersistentVolumeClaims(opts.Namespace).Create(&apiv1.PersistentVolumeClaim{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   opts.PGPVClaimName,
@@ -249,7 +249,7 @@ func genPassword() string {
 
 // cereateSecret creates a postgres secret with either a provided password
 // or a auto generated password
-func createSecret(c *kubernetes.Clientset, opts Options) error {
+func createSecret(c *kubernetes.Clientset, opts InstallOptions) error {
 	var password = opts.PGPassword
 	if password == "" {
 		password = genPassword()
@@ -271,7 +271,7 @@ func createSecret(c *kubernetes.Clientset, opts Options) error {
 func intOrStringPtr(i intstr.IntOrString) *intstr.IntOrString { return &i }
 
 // createDeployment creates a deployment for needle
-func createDeployment(c *kubernetes.Clientset, opts Options) error {
+func createDeployment(c *kubernetes.Clientset, opts InstallOptions) error {
 	var serviceAccount = ""
 	if opts.RBAC {
 		serviceAccount = opts.ServiceAccountName

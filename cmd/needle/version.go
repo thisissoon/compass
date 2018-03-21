@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"compass/version"
+	"compass/pkg/version"
 
 	"github.com/spf13/cobra"
 )

@@ -1,10 +1,9 @@
-package sync
+package namerd
 
 import (
 	"context"
 
-	"compass/namerd"
-	"compass/store"
+	"compass/pkg/store"
 
 	"github.com/rs/zerolog"
 )
@@ -12,11 +11,11 @@ import (
 // A DtabUpdatePublisher publishes delegation table names to a channel
 // when the should be synced with namerd
 type DtabUpdatePublisher interface {
-	DtabUpdates() <-chan namerd.Dtab
+	DtabUpdates() <-chan Dtab
 }
 
 type Sync struct {
-	namerd    *namerd.Client
+	namerd    *Client
 	store     store.DentriesByDtabSelector
 	publisher DtabUpdatePublisher
 	log       zerolog.Logger
@@ -39,7 +38,7 @@ func (s *Sync) Start(ctx context.Context) {
 	}
 }
 
-func New(n *namerd.Client, s store.DentriesByDtabSelector, p DtabUpdatePublisher) *Sync {
+func Syncer(n *Client, s store.DentriesByDtabSelector, p DtabUpdatePublisher) *Sync {
 	return &Sync{
 		namerd:    n,
 		store:     s,
@@ -47,14 +46,14 @@ func New(n *namerd.Client, s store.DentriesByDtabSelector, p DtabUpdatePublisher
 	}
 }
 
-func syncDtab(ctx context.Context, s store.DentriesByDtabSelector, nd namerd.DentriesUpdator, dtab namerd.Dtab) error {
+func syncDtab(ctx context.Context, s store.DentriesByDtabSelector, nd DentriesUpdator, dtab Dtab) error {
 	dC, err := s.DentriesByDtab(ctx, dtab.String())
 	if err != nil {
 		return err
 	}
-	var dentries namerd.Dentries
+	var dentries Dentries
 	for dentry := range dC {
-		dentries = append(dentries, namerd.Dentry{
+		dentries = append(dentries, Dentry{
 			Prefix: dentry.Prefix,
 			Dst:    dentry.Destination,
 		})

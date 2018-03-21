@@ -1,4 +1,4 @@
-package grpc
+package server
 
 import (
 	"net"
@@ -7,7 +7,7 @@ import (
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
 
-	needle "compass/proto/needle/v1"
+	pb "compass/pkg/proto/services"
 )
 
 // An Option funtion can override configuration options
@@ -24,8 +24,8 @@ func WithAddress(addr string) Option {
 
 // A Server can create and stop a gRPC server
 type Server struct {
-	addr string                     // address to bind too
-	ns   needle.NeedleServiceServer // needle service service
+	addr string
+	svc  pb.DentryServiceServer
 
 	lock sync.Mutex // protects below
 	srv  *grpc.Server
@@ -44,7 +44,7 @@ func (s *Server) Serve(log zerolog.Logger) <-chan error {
 	s.srv = grpc.NewServer(
 		grpc.UnaryInterceptor(LogUnaryInterceptor(log)),
 		grpc.StreamInterceptor(LogStreamInyerceptor(log)))
-	needle.RegisterNeedleServiceServer(s.srv, s.ns)
+	pb.RegisterDentryServiceServer(s.srv, s.svc)
 	go func() { // Start serving :)
 		log.Debug().Str("address", ln.Addr().String()).Msg("gRPC server started")
 		errC <- s.srv.Serve(ln)
@@ -63,10 +63,10 @@ func (s *Server) Stop() {
 
 // NewServer creates a new gRPC server
 // Use Option functions to override defaults
-func NewServer(ns needle.NeedleServiceServer, opts ...Option) *Server {
+func New(svc pb.DentryServiceServer, opts ...Option) *Server {
 	s := &Server{
 		addr: ":5000",
-		ns:   ns,
+		svc:  svc,
 	}
 	for _, opt := range opts {
 		opt(s)

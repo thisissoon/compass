@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"compass/namerd"
-	"compass/store"
+	"compass/pkg/namerd"
+	"compass/pkg/store"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"

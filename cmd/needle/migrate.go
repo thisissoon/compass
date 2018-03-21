@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"compass/store/psql"
+	"compass/pkg/store/psql"
 
 	"github.com/spf13/cobra"
 )
