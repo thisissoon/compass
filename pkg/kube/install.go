@@ -221,6 +221,9 @@ func createPVClaim(c *kubernetes.Clientset, opts InstallOptions) error {
 		ObjectMeta: metav1.ObjectMeta{
 			Name:   opts.PGPVClaimName,
 			Labels: opts.Labels,
+			Annotations: map[string]string{
+				"volume.alpha.kubernetes.io/storage-class": "default",
+			},
 		},
 		Spec: apiv1.PersistentVolumeClaimSpec{
 			AccessModes: []apiv1.PersistentVolumeAccessMode{
@@ -228,7 +231,7 @@ func createPVClaim(c *kubernetes.Clientset, opts InstallOptions) error {
 			},
 			Resources: apiv1.ResourceRequirements{
 				Requests: apiv1.ResourceList{
-					apiv1.ResourceStorage: *resource.NewScaledQuantity(8, resource.Giga),
+					apiv1.ResourceStorage: *resource.NewScaledQuantity(5, resource.Giga),
 				},
 			},
 		},
@@ -348,8 +351,8 @@ func createDeployment(c *kubernetes.Clientset, opts InstallOptions) error {
 							VolumeMounts: []apiv1.VolumeMount{
 								{
 									Name:      "pgdata",
-									MountPath: "/var/lib/postgresql/data/pgdata",
-									SubPath:   "postgresql-db",
+									MountPath: "/var/lib/postgresql/data",
+									SubPath:   "data",
 								},
 							},
 							Env: []apiv1.EnvVar{
@@ -374,7 +377,7 @@ func createDeployment(c *kubernetes.Clientset, opts InstallOptions) error {
 								},
 								{
 									Name:  "POSTGRES_PGDATA",
-									Value: "/var/lib/postgresql/data/pgdata",
+									Value: "/var/lib/postgresql/data",
 								},
 							},
 							Ports: []apiv1.ContainerPort{
