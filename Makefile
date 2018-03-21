@@ -1,36 +1,46 @@
-# Compilation Flags
-GOOS            ?= $(shell go env GOOS)
-GOARCH          ?= $(shell go env GOARCH)
-# Build Vars
-BUILD_TIME      ?= $(shell date +%s)
-BUILD_VERSION   ?= $(shell head -n 1 VERSION | tr -d "\n")
-BUILD_COMMIT    ?= $(shell git rev-parse HEAD)
-# LDFlags
-LDFLAGS ?= -d
-LDFLAGS += -X compass/pkg/version.timestamp=$(BUILD_TIME)
-LDFLAGS += -X compass/pkg/version.version=$(BUILD_VERSION)
-LDFLAGS += -X compass/pkg/version.commit=$(BUILD_COMMIT)
-# Go Build Flags
-GOBUILD_FLAGS ?= -tags netgo -installsuffix netgo
-GOBUILD_FLAGS += -installsuffix netgo
-# Bin Dir
-BIN_DIR ?= ./_bin
-# Compress Binry
-COMPRESS_BINARY ?= 0
-# Verbose build output
-GOBUILD_VERBOSE ?= 0
+# Go Binary
+GO  ?= go
+APP = compass
+CGO = 1
 
-# Generate protobuf code
+# Docker
+DOCKER_REGISTRY ?= gcr.io
+
+# Binary Directory
+BINDIR ?= $(CURDIR)/_bin
+
+# Go Build Flags
+GOFLAGS :=
+
+# Versioning
+GIT_COMMIT     ?= $(shell git rev-parse HEAD)
+GIT_SHA        ?= $(shell git rev-parse --short HEAD)
+GIT_TAG        ?= $(shell git describe --tags --abbrev=0 --exact-match 2>/dev/null)
+GIT_DIRTY      ?= $(shell test -n "`git status --porcelain`" && echo "dirty" || echo "clean")
+ifdef VERSION
+	DOCKER_VERSION = $(VERSION)
+	BINARY_VERSION = $(VERSION)
+endif
+DOCKER_VERSION ?= git-${GIT_SHA}
+BINARY_VERSION ?= ${GIT_TAG}
+
+# LDFlags
+LDFLAGS := -w -s
+LDFLAGS += -X compass/pkg/version.Timestamp=$(shell date +%s)
+LDFLAGS += -X compass/pkg/version.GitCommit=${GIT_COMMIT}
+LDFLAGS += -X compass/pkg/version.GitTreeState=${GIT_DIRTY}
+ifneq ($(BINARY_VERSION),)
+	LDFLAGS += -X compass/pkg/version.Version=${BINARY_VERSION}
+endif
+
 .PHONY: protoc
 protoc:
 	$(MAKE) -C _proto/ all
 
-# Generate database migrations
 .PHONY: migrations
 migrations:
 	$(MAKE) -C _migrations/ all
 
-# Run dep ensure and prun unneeded dependencies
 .PHONY: ensure
 ensure:
 ifeq ("$(wildcard $(shell which dep))","")
@@ -38,59 +48,57 @@ ifeq ("$(wildcard $(shell which dep))","")
 endif
 	dep ensure -v
 
-# Run test suite
+.PHONY: test
 test:
 ifeq ("$(wildcard $(shell which gocov))","")
 	go get github.com/axw/gocov/gocov
 endif
 	gocov test -v ./... | gocov report
 
-build-flags:
-ifeq ($(GOBUILD_VERBOSE),1)
-	$(eval GOBUILD_FLAGS += -v)
-endif
+.PHONY: info
+info:
+	@echo "Version:           ${VERSION}"
+	@echo "Git Tag:           ${GIT_TAG}"
+	@echo "Git Commit:        ${GIT_COMMIT}"
+	@echo "Git Tree State:    ${GIT_DIRTY}"
+	@echo "Docker Version:    ${DOCKER_VERSION}"
+	@echo "Registry:          ${DOCKER_REGISTRY}"
 
-ldflags:
-ifeq ($(COMPRESS_BINARY),1)
-	$(eval LDFLAGS += -a -w -s)
-endif
+.PHONY: clean
+clean:
+	@rm -rf $(BINDIR)
 
-compass: build-flags ldflags |
-	$(eval BIN_NAME ?= compass.$(BUILD_VERSION).$(GOOS)-$(GOARCH))
-	@mkdir -p $(BIN_DIR)
-	CGO_ENABLED=0 \
-	GOOS=$(GOOS) \
-	GOARCH=$(GOARCH) \
-	go build $(GOBUILD_FLAGS) \
-		-ldflags "$(LDFLAGS)" \
-		-o "$(BIN_DIR)/$(BIN_NAME)" \
-		./cmd/compass
+# usage APP=needle make build
+.PHONY: build
+build:
+	CGO_ENABLED=$(CGO) GOBIN=$(BINDIR) $(GO) install $(GOFLAGS) -ldflags '$(LDFLAGS)' compass/cmd/$(APP)
 
-compass-image:
+# usage APP=needle make static
+.PHONY: static
+static: GOFLAGS += -a
+static: GOFLAGS += -tags netgo -installsuffix netgo
+static: GOFLAGS += -installsuffix netgo
+static: LDFLAGS += -a -extldflags "-static"
+static: CGO = 0
+static: build
+
+# usage: APP=needle make image
+image:
 	docker build \
 		--force-rm \
-		--build-arg APP=compass \
-		--build-arg BUILD_TIME=$(BUILD_TIME) \
-		--build-arg BUILD_VERSION=$(BUILD_VERSION) \
-		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
-		-t soon/compass:$(BUILD_VERSION) .
+		--build-arg APP=$(APP) \
+		--build-arg GIT_COMMIT=$(GIT_COMMIT) \
+		--build-arg GIT_SHA=$(GIT_SHA) \
+		--build-arg GIT_TAG=$(GIT_TAG) \
+		--build-arg GIT_DIRTY=$(GIT_DIRTY) \
+		-t soon/$(APP):$(DOCKER_VERSION) .
 
-needle: build-flags ldflags |
-	$(eval BIN_NAME ?= needle.$(BUILD_VERSION).$(GOOS)-$(GOARCH))
-	@mkdir -p $(BIN_DIR)
-	CGO_ENABLED=0 \
-	GOOS=$(GOOS) \
-	GOARCH=$(GOARCH) \
-	go build $(GOBUILD_FLAGS) \
-		-ldflags "$(LDFLAGS)" \
-		-o "$(BIN_DIR)/$(BIN_NAME)" \
-		./cmd/needle
+# usage: make compass
+.PHONY: compass
+compass: APP = compass
+compass: build
 
-needle-image:
-	docker build \
-		--force-rm \
-		--build-arg APP=needle \
-		--build-arg BUILD_TIME=$(BUILD_TIME) \
-		--build-arg BUILD_VERSION=$(BUILD_VERSION) \
-		--build-arg BUILD_COMMIT=$(BUILD_COMMIT) \
-		-t soon/needle:$(BUILD_VERSION) .
+# usage: make needle
+.PHONY: needle
+needle: APP = needle
+needle: build

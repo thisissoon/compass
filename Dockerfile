@@ -2,13 +2,14 @@
 # BUILD_X args should be passed at build time as docker build args
 FROM golang:1.9.1-alpine AS builder
 ARG APP
-ARG BUILD_TIME
-ARG BUILD_VERSION
-ARG BUILD_COMMIT
+ARG GIT_COMMIT
+ARG GIT_SHA
+ARG GIT_TAG
+ARG GIT_DIRTY
 RUN apk update && apk add build-base libressl-dev
 WORKDIR /go/src/compass
 COPY ./ /go/src/compass
-RUN COMPRESS_BINARY=1 GOBUILD_VERBOSE=1 BIN_DIR=/usr/local/bin BIN_NAME=${APP} make ${APP}
+RUN BINDIR=/usr/local/bin APP=${APP} make static
 
 # Stage 2 - Final Image
 # The application should be statically linked

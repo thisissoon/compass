@@ -1,30 +1,28 @@
 package version
 
 import (
+	"fmt"
 	"strconv"
 	"time"
 )
 
-// Build time variables with default values
-// These are set at compile time
 var (
-	version   string
-	timestamp string
-	commit    string
+	Version      string
+	Timestamp    string
+	GitCommit    string
+	GitTreeState string
 )
-
-// Version returns the build version
-func Version() string {
-	return version
-}
-
-// Commit returns the build commit hash
-func Commit() string {
-	return commit
-}
 
 // BuildTimestamp returns the build timestamp
 func BuildTime() time.Time {
-	ts, _ := strconv.ParseInt(timestamp, 10, 64)
+	ts, _ := strconv.ParseInt(Timestamp, 10, 64)
 	return time.Unix(ts, 0).UTC()
+}
+
+// Print version info
+func Print() {
+	fmt.Println("Version:", Version)
+	fmt.Println("Build Time:", BuildTime().Format(time.RFC1123))
+	fmt.Println("Git Commit:", GitCommit)
+	fmt.Println("Git Tree State:", GitTreeState)
 }

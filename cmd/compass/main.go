@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"compass/pkg/kube"
-	"compass/pkg/version"
 
 	pb "compass/pkg/proto/services"
 
@@ -28,10 +27,7 @@ var (
 )
 
 // Common Logger
-var log = zerolog.New(os.Stdout).With().Fields(map[string]interface{}{
-	"version": version.Version(),
-	"commit":  version.Commit(),
-}).Timestamp().Logger()
+var log = zerolog.New(os.Stdout)
 
 // Application entry point
 func main() {

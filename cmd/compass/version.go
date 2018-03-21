@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"time"
-
 	"compass/pkg/version"
 
 	"github.com/spf13/cobra"
@@ -14,11 +11,9 @@ import (
 func versionCmd() *cobra.Command {
 	return &cobra.Command{
 		Use:   "version",
-		Short: "Prints the build version",
+		Short: "Prints version information",
 		Run: func(*cobra.Command, []string) {
-			fmt.Println("Version:", version.Version())
-			fmt.Println("Commit:", version.Commit())
-			fmt.Println("Built:", version.BuildTime().Format(time.RFC1123))
+			version.Print()
 		},
 	}
 }

@@ -12,7 +12,6 @@ import (
 	"compass/pkg/server"
 	"compass/pkg/service"
 	"compass/pkg/store/psql"
-	"compass/pkg/version"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/rs/zerolog"
@@ -24,10 +23,7 @@ import (
 var sigC = make(chan os.Signal)
 
 // Common Logger
-var log = zerolog.New(os.Stdout).With().Fields(map[string]interface{}{
-	"version": version.Version(),
-	"commit":  version.Commit(),
-}).Timestamp().Logger()
+var log = zerolog.New(os.Stdout)
 
 // Application entry point
 func main() {

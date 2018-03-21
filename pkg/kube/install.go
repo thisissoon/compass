@@ -312,7 +312,7 @@ func createDeployment(c *kubernetes.Clientset, opts InstallOptions) error {
 					Containers: []apiv1.Container{
 						{
 							Name:            "needle",
-							Image:           fmt.Sprintf("soon/needle:%s", version.Version()),
+							Image:           fmt.Sprintf("soon/needle:%s", version.Version),
 							ImagePullPolicy: apiv1.PullIfNotPresent,
 							Ports: []apiv1.ContainerPort{
 								{
