@@ -26,6 +26,7 @@ type InstallOptions struct {
 	DeoploymentName    string
 	Replicas           int32
 	Labels             map[string]string
+	NamerdHost         string
 	PGPVClaimName      string
 	PGPassword         string
 	PGPWSecretName     string
@@ -53,7 +54,7 @@ var DefaultInstallOptions = InstallOptions{
 type InstallOption func(*InstallOptions)
 
 // WithNamespace sets the namespace needle should be installed into
-func WithInstallNamespace(name string) InstallOption {
+func InstallWithNamespace(name string) InstallOption {
 	return func(opts *InstallOptions) {
 		opts.Namespace = name
 	}
@@ -67,23 +68,30 @@ func WithInastallServiceAccount(name string) InstallOption {
 }
 
 // WithDeploymentName sets the deployment name
-func WithInstallDeploymentName(name string) InstallOption {
+func InstallWithDeploymentName(name string) InstallOption {
 	return func(opts *InstallOptions) {
 		opts.ServiceAccountName = name
 	}
 }
 
 // WithLabels sets the labels used for the needle install
-func WithInstallLabels(labels map[string]string) InstallOption {
+func InstallWithLabels(labels map[string]string) InstallOption {
 	return func(opts *InstallOptions) {
 		opts.Labels = labels
 	}
 }
 
 // WithRBAC enables RBAC roles to be created for needle on install
-func WithInstallRBAC() InstallOption {
+func InstallWithRBAC() InstallOption {
 	return func(opts *InstallOptions) {
 		opts.RBAC = true
+	}
+}
+
+// InstallWithNamerdHost sets the namerd configuration
+func InstallWithNamerdHost(name string) InstallOption {
+	return func(opts *InstallOptions) {
+		opts.NamerdHost = name
 	}
 }
 
@@ -329,6 +337,17 @@ func createDeployment(c *kubernetes.Clientset, opts InstallOptions) error {
 												Name: opts.PGPWSecretName,
 											},
 											Key: opts.PGPWSecretKey,
+										},
+									},
+								},
+								{
+									Name: "NEEDLE_NAMERD_HOST",
+									ValueFrom: &apiv1.EnvVarSource{
+										SecretKeyRef: &apiv1.SecretKeySelector{
+											LocalObjectReference: apiv1.LocalObjectReference{
+												Name: opts.NamerdHost,
+											},
+											Key: opts.NamerdHost,
 										},
 									},
 								},
