@@ -4,8 +4,8 @@
 [[projects]]
   name = "cloud.google.com/go"
   packages = ["compute/metadata"]
-  revision = "767c40d6a2e058483c25fa193e963a22da17236d"
-  version = "v0.18.0"
+  revision = "20d4028b8a750c2aca76bf9fefa8ed2d0109b573"
+  version = "v0.19.0"
 
 [[projects]]
   branch = "master"
@@ -293,7 +293,7 @@
     "jws",
     "jwt"
   ]
-  revision = "b28fcf2b08a19742b43084fb40ab78ac6c3d8067"
+  revision = "fdc9e635145ae97e6c2cb777c48305600cf515cb"
 
 [[projects]]
   branch = "master"
@@ -540,6 +540,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "47a650ab777c5bf65bb9a7dc54bbf28a853deffc7828b7fea134bbc957b5ce3b"
+  inputs-digest = "2dd238e0d3b770e2765886072d3c5900d1a262e63a42cbabb7000e41e376cfd5"
   solver-name = "gps-cdcl"
   solver-version = 1
