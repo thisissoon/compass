@@ -1,50 +1,41 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
 	"compass/pkg/kube"
+	"compass/pkg/ui"
 
 	"github.com/spf13/cobra"
 )
 
+// installCmd returns a cobra command for installing compass into a kubernetes
+// existing cluster
 func installCmd() *cobra.Command {
 	var namespace string
 	var rbac bool
+	var namerd string
 	cmd := &cobra.Command{
 		Use:   "install",
 		Short: "Install needle, compass's server component into a Kubernetes cluster",
-		Run: func(cmd *cobra.Command, _ []string) {
-			os.Exit(installCompass(
-				namespace,
-				rbac,
-			))
+		RunE: func(cmd *cobra.Command, args []string) error {
+			clientset, err := kube.Clientset()
+			if err != nil {
+				return err
+			}
+			if namespace == "" || namerd == "" {
+				return ui.Installer(clientset)
+			}
+			var opts = []kube.InstallOption{
+				kube.InstallWithNamespace(namespace),
+				kube.InstallWithNamerdHost(namerd),
+			}
+			if rbac {
+				opts = append(opts, kube.InstallWithRBAC())
+			}
+			return kube.Install(clientset, opts...)
 		},
 	}
 	cmd.Flags().BoolVar(&rbac, "with-rbac", false, "Create RBAC resources")
 	cmd.Flags().StringVar(&namespace, "namespace", "", "Namespace to install Needle into")
+	cmd.Flags().StringVar(&namerd, "namerd", "", "Namerd HTTP API host:port, e.g: namerd.namerd.svc.cluster.local:4180")
 	return cmd
-}
-
-func installCompass(namespace string, rbac bool) int {
-	fmt.Println("Installing needle, the compass server into the cluster...")
-	client, err := kube.Clientset()
-	if err != nil {
-		fmt.Println(err)
-		return 1
-	}
-	var opts []kube.InstallOption
-	if namespace != "" {
-		opts = append(opts, kube.WithInstallNamespace(namespace))
-	}
-	if rbac {
-		opts = append(opts, kube.WithInstallRBAC())
-	}
-	if err := kube.Install(client, opts...); err != nil {
-		fmt.Println(err)
-		return 1
-	}
-	fmt.Println("Install complete")
-	return 0
 }
