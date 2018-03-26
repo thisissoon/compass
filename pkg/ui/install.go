@@ -71,7 +71,7 @@ func Installer(cs *kubernetes.Clientset) error {
 	if err != nil {
 		return err
 	}
-	opts = append(opts, kube.InstallWithNamespace(namerdHost))
+	opts = append(opts, kube.InstallWithNamerdHost(namerdHost))
 	installSummary(InstallSummaryData{
 		Namespace:  namespace.GetName(),
 		RBAC:       rbac,
