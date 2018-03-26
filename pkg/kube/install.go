@@ -341,15 +341,8 @@ func createDeployment(c *kubernetes.Clientset, opts InstallOptions) error {
 									},
 								},
 								{
-									Name: "NEEDLE_NAMERD_HOST",
-									ValueFrom: &apiv1.EnvVarSource{
-										SecretKeyRef: &apiv1.SecretKeySelector{
-											LocalObjectReference: apiv1.LocalObjectReference{
-												Name: opts.NamerdHost,
-											},
-											Key: opts.NamerdHost,
-										},
-									},
+									Name:  "NEEDLE_NAMERD_HOST",
+									Value: opts.NamerdHost,
 								},
 							},
 							Resources: apiv1.ResourceRequirements{
