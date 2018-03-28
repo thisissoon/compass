@@ -13,9 +13,8 @@ var (
 	configPathKey = "config.path"
 	// Logging configuration
 	logFormatKey = "log.format"
-	// k8s configuration
-	kubeContextKey   = "kube.context"
-	kubeNamespaceKey = "kube.namespasce"
+	// needle configuration
+	needleNamespaceKey = "needle.namespace"
 )
 
 // init sets default configuration file settings such as path look
@@ -24,12 +23,12 @@ var (
 // ~/.config/compass.toml
 // ~/.config/compass/compass.toml
 // ~/.compass/compass.toml
+// $(pwd)/.compass/compass.toml
 func init() {
 	// Default logging configuration
 	viper.SetDefault(logFormatKey, "json")
 	// Kubernetets configuration defaults
-	viper.SetDefault(kubeContextKey, "")
-	viper.SetDefault(kubeNamespaceKey, "kube-system")
+	viper.SetDefault(needleNamespaceKey, "kube-system")
 	// Config file lookup locations
 	viper.SetConfigType("toml")
 	viper.SetConfigName("compass")
@@ -37,18 +36,20 @@ func init() {
 	viper.AddConfigPath(filepath.Join("$HOME", ".config"))
 	viper.AddConfigPath(filepath.Join("$HOME", ".config", "compass"))
 	viper.AddConfigPath(filepath.Join("$HOME", ".compass"))
+	viper.AddConfigPath(filepath.Join("$PWD", ".compass"))
 	// Environment variables
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.SetEnvPrefix("compass")
 	viper.AutomaticEnv()
+	viper.BindEnv(
+		logFormatKey,
+		needleNamespaceKey)
 }
 
 // readConfig loads configuraion from a file
-func readConfig() {
+func readConfig() error {
 	if viper.GetString(configPathKey) != "" {
 		viper.SetConfigFile(viper.GetString(configPathKey))
 	}
-	if err := viper.ReadInConfig(); err != nil {
-		log.Warn().Err(err).Msg("error reading configuration file")
-	}
+	return viper.ReadInConfig()
 }

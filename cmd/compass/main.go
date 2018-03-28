@@ -45,8 +45,10 @@ func setup(cmd *cobra.Command, _ []string) error {
 			Out: os.Stdout,
 		})
 	}
+	fmt.Println(viper.GetString(needleNamespaceKey))
 	// Open a tunnel to needle
-	t := kube.NewTunnel()
+	t := kube.NewTunnel(
+		kube.TunnelWithNamespace(viper.GetString(needleNamespaceKey)))
 	if err := t.Open(); err != nil {
 		return err
 	}
@@ -85,6 +87,7 @@ func compassCmd() *cobra.Command {
 	pflags := cmd.PersistentFlags()
 	pflags.String("config-path", "", "Path to configuration file")
 	pflags.String("log-format", "", "Log output format [console|json]")
+	pflags.String("needle-namespace", "", "Namespace needle is running in")
 	// Bind persistent flags
 	viper.BindPFlag(configPathKey, pflags.Lookup("config-path"))
 	viper.BindPFlag(logFormatKey, pflags.Lookup("log-format"))
