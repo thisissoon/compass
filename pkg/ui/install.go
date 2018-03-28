@@ -7,6 +7,7 @@ import (
 	"text/template"
 
 	"compass/pkg/kube"
+	"compass/pkg/version"
 
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/kubernetes"
@@ -23,10 +24,13 @@ the namerd HTTP API. See the namerd documentation for help:
 https://linkerd.io/config/latest/namerd/index.html#http-controller`
 
 var installSummaryMsg = `
-Compass will be installed with the following settings:
+Configuration
+-------------
+Version: {{.Version}}
 Namespace: {{.Namespace}}
 With RBAC: {{if .RBAC}}yes{{else}}no{{end}}
-Namerd Host: {{.NamerdHost}}`
+Namerd Host: {{.NamerdHost}}
+`
 
 // Compiled templates
 var (
@@ -46,6 +50,7 @@ type InstallSummaryData struct {
 	Namespace  string
 	RBAC       bool
 	NamerdHost string
+	Version    string
 }
 
 // Installer runs an interactive user driven install wizard
@@ -72,10 +77,16 @@ func Installer(cs *kubernetes.Clientset) error {
 		return err
 	}
 	opts = append(opts, kube.InstallWithNamerdHost(namerdHost))
+	v := version.Version
+	if v == "" {
+		v = Input(InputMessage("Version to install e.g: v1.0.0:"))
+	}
+	opts = append(opts, kube.InstallWithVersion(v))
 	installSummary(InstallSummaryData{
 		Namespace:  namespace.GetName(),
 		RBAC:       rbac,
 		NamerdHost: namerdHost,
+		Version:    v,
 	})
 	if !Confirm(ConfirmMessage("Install Compass?"), ConfirmDefault(true)) {
 		return ErrNotInstalled

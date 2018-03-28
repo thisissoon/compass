@@ -5,8 +5,6 @@ import (
 	"math/rand"
 	"time"
 
-	"compass/pkg/version"
-
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/util/intstr"
 	"k8s.io/client-go/kubernetes"
@@ -31,6 +29,7 @@ type InstallOptions struct {
 	PGPassword         string
 	PGPWSecretName     string
 	PGPWSecretKey      string
+	Version            string
 }
 
 // Default install options - these can be modified using Option functions
@@ -92,6 +91,13 @@ func InstallWithRBAC() InstallOption {
 func InstallWithNamerdHost(name string) InstallOption {
 	return func(opts *InstallOptions) {
 		opts.NamerdHost = name
+	}
+}
+
+// InstallWithVersion sets the version to install
+func InstallWithVersion(version string) InstallOption {
+	return func(opts *InstallOptions) {
+		opts.Version = version
 	}
 }
 
@@ -320,7 +326,7 @@ func createDeployment(c *kubernetes.Clientset, opts InstallOptions) error {
 					Containers: []apiv1.Container{
 						{
 							Name:            "needle",
-							Image:           fmt.Sprintf("soon/needle:%s", version.Version),
+							Image:           fmt.Sprintf("soon/needle:%s", opts.Version),
 							ImagePullPolicy: apiv1.PullIfNotPresent,
 							Ports: []apiv1.ContainerPort{
 								{

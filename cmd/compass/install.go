@@ -3,6 +3,7 @@ package main
 import (
 	"compass/pkg/kube"
 	"compass/pkg/ui"
+	"compass/pkg/version"
 
 	"github.com/spf13/cobra"
 )
@@ -13,6 +14,7 @@ func installCmd() *cobra.Command {
 	var namespace string
 	var rbac bool
 	var namerd string
+	var ver string
 	cmd := &cobra.Command{
 		Use:   "install",
 		Short: "Install needle, compass's server component into a Kubernetes cluster",
@@ -27,6 +29,7 @@ func installCmd() *cobra.Command {
 			var opts = []kube.InstallOption{
 				kube.InstallWithNamespace(namespace),
 				kube.InstallWithNamerdHost(namerd),
+				kube.InstallWithVersion(ver),
 			}
 			if rbac {
 				opts = append(opts, kube.InstallWithRBAC())
@@ -37,5 +40,6 @@ func installCmd() *cobra.Command {
 	cmd.Flags().BoolVar(&rbac, "with-rbac", false, "Create RBAC resources")
 	cmd.Flags().StringVar(&namespace, "namespace", "", "Namespace to install Needle into")
 	cmd.Flags().StringVar(&namerd, "namerd", "", "Namerd HTTP API host:port, e.g: namerd.namerd.svc.cluster.local:4180")
+	cmd.Flags().StringVar(&ver, "version", version.Version, "Install Version")
 	return cmd
 }
