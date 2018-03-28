@@ -2,74 +2,81 @@ package server
 
 import (
 	"net"
-	"sync"
 
 	"github.com/rs/zerolog"
 	"google.golang.org/grpc"
-
-	pb "compass/pkg/proto/services"
 )
+
+// Options configures the gRPC server
+type Options struct {
+	Address string
+	Log     zerolog.Logger
+}
 
 // An Option funtion can override configuration options
 // for a server
-type Option func(*Server)
+type Option func(*Options)
 
-// WithAddress overrides the default configured listen
-// address for a server
+// WithAddress overrides the default configured listen address for a server
 func WithAddress(addr string) Option {
-	return func(s *Server) {
-		s.addr = addr
+	return func(o *Options) {
+		o.Address = addr
 	}
+}
+
+// WithLogger overrides the default logger for a server
+func WithLogger(logger zerolog.Logger) Option {
+	return func(o *Options) {
+		o.Log = logger
+	}
+}
+
+// A Service can register itself with a server
+type Service interface {
+	RegisterWithServer(*grpc.Server)
 }
 
 // A Server can create and stop a gRPC server
 type Server struct {
-	addr string
-	svc  pb.DentryServiceServer
+	Options Options
 
-	lock sync.Mutex // protects below
-	srv  *grpc.Server
+	server *grpc.Server
 }
 
 // Start starts serving the gRPC server
-func (s *Server) Serve(log zerolog.Logger) <-chan error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	errC := make(chan error, 1)
-	ln, err := net.Listen("tcp", s.addr)
+func (s *Server) Serve(services ...Service) error {
+	ln, err := net.Listen("tcp", s.Options.Address)
 	if err != nil {
-		errC <- err
-		return (<-chan error)(errC)
+		return err
 	}
-	s.srv = grpc.NewServer(
-		grpc.UnaryInterceptor(LogUnaryInterceptor(log)),
-		grpc.StreamInterceptor(LogStreamInyerceptor(log)))
-	pb.RegisterDentryServiceServer(s.srv, s.svc)
-	go func() { // Start serving :)
-		log.Debug().Str("address", ln.Addr().String()).Msg("gRPC server started")
-		errC <- s.srv.Serve(ln)
-	}()
-	return (<-chan error)(errC)
+	s.server = grpc.NewServer(
+		grpc.UnaryInterceptor(LogUnaryInterceptor(s.Options.Log)),
+		grpc.StreamInterceptor(LogStreamInyerceptor(s.Options.Log)))
+	for _, service := range services {
+		service.RegisterWithServer(s.server)
+	}
+	return s.server.Serve(ln)
 }
 
 // Stop gracefully stops the grpc server
 func (s *Server) Stop() {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	if s.srv != nil {
-		s.srv.GracefulStop()
+	if s.server != nil {
+		s.server.GracefulStop()
 	}
 }
 
 // NewServer creates a new gRPC server
 // Use Option functions to override defaults
-func New(svc pb.DentryServiceServer, opts ...Option) *Server {
+func New(opts ...Option) *Server {
+	options := Options{
+		Address: ":5000",
+		Log:     zerolog.Nop(),
+	}
 	s := &Server{
-		addr: ":5000",
-		svc:  svc,
+		Options: options,
 	}
 	for _, opt := range opts {
-		opt(s)
+		opt(&options)
 	}
 	return s
 }

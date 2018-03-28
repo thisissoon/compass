@@ -1,6 +1,7 @@
 package psql
 
 import (
+	"database/sql"
 	"strings"
 
 	"github.com/mattes/migrate"
@@ -9,7 +10,7 @@ import (
 	bindata "github.com/mattes/migrate/source/go-bindata"
 
 	// postgres driver
-	_ "github.com/mattes/migrate/database/postgres"
+	postgres "github.com/mattes/migrate/database/postgres"
 )
 
 // migrateLogger is used to log database migrations
@@ -27,8 +28,16 @@ func (l *MigrateLogger) Verbose() bool {
 	return true
 }
 
+type MigrateOption func(m *migrate.Migrate)
+
+func MigrateWithLog(log migrate.Logger) MigrateOption {
+	return func(m *migrate.Migrate) {
+		m.Log = log
+	}
+}
+
 // Migrate runs database migrat
-func NewMigrator(dsn DSN, log *MigrateLogger) (*migrate.Migrate, error) {
+func NewMigrator(dsn DSN, opts ...MigrateOption) (*migrate.Migrate, error) {
 	// Get migration files from go-bindata codegen
 	resource := bindata.Resource(AssetNames(),
 		func(name string) ([]byte, error) {
@@ -44,6 +53,32 @@ func NewMigrator(dsn DSN, log *MigrateLogger) (*migrate.Migrate, error) {
 	if err != nil {
 		return nil, err
 	}
-	m.Log = log
+	for _, opt := range opts {
+		opt(m)
+	}
+	return m, nil
+}
+
+func NewMigratorFromDB(db *sql.DB, opts ...MigrateOption) (*migrate.Migrate, error) {
+	driver, err := postgres.WithInstance(db, &postgres.Config{})
+	if err != nil {
+		return nil, err
+	}
+	resource := bindata.Resource(
+		AssetNames(),
+		func(name string) ([]byte, error) {
+			return Asset(name)
+		})
+	source, err := bindata.WithInstance(resource)
+	if err != nil {
+		return nil, err
+	}
+	m, err := migrate.NewWithInstance("go-bindata", source, "postgres", driver)
+	if err != nil {
+		return nil, err
+	}
+	for _, opt := range opts {
+		opt(m)
+	}
 	return m, nil
 }

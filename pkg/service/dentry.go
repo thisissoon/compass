@@ -11,6 +11,7 @@ import (
 	pb "compass/pkg/proto/services"
 
 	"github.com/golang/protobuf/ptypes/timestamp"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"k8s.io/apimachinery/pkg/labels"
@@ -44,13 +45,21 @@ type ServiceSelectorDentryPutter interface {
 
 // Manager implements the pb.NeedleServiceServer interface
 // and thus handles gRPC requests
-type Service struct {
+type DentryService struct {
 	store store.Store
 	k8s   *kubernetes.Clientset
 }
 
+// NewDentryService returns a new DentryService
+func NewDentryService(store store.Store, k8s *kubernetes.Clientset) *DentryService {
+	return &DentryService{
+		store: store,
+		k8s:   k8s,
+	}
+}
+
 // PutService creates or updates a service
-func (s *Service) PutService(ctx context.Context, req *pb.PutServiceRequest) (*pb.PutServiceResponse, error) {
+func (s *DentryService) PutService(ctx context.Context, req *pb.PutServiceRequest) (*pb.PutServiceResponse, error) {
 	return putService(ctx, s.store, req.GetService())
 }
 
@@ -77,7 +86,7 @@ func putService(ctx context.Context, sp store.ServicePutter, s *pb.Service) (*pb
 }
 
 // PutDentry creates or updates a dentry
-func (s *Service) PutDentry(ctx context.Context, req *pb.PutDentryRequest) (*pb.PutDentryResponse, error) {
+func (s *DentryService) PutDentry(ctx context.Context, req *pb.PutDentryRequest) (*pb.PutDentryResponse, error) {
 	return putDentry(ctx, s.store, req.GetDentry())
 }
 
@@ -107,7 +116,7 @@ func putDentry(ctx context.Context, sp store.DentryPutter, d *pb.Dentry) (*pb.Pu
 }
 
 // DeleteDentryById deletes a dentry by Id
-func (s *Service) DeleteDentryById(ctx context.Context, req *pb.DeleteDentryByIdRequest) (*pb.DeleteDentryByIdResponse, error) {
+func (s *DentryService) DeleteDentryById(ctx context.Context, req *pb.DeleteDentryByIdRequest) (*pb.DeleteDentryByIdResponse, error) {
 	return deleteDentryById(s.store, req.GetId())
 }
 
@@ -123,7 +132,7 @@ func deleteDentryById(db store.DentryByIdDeletor, id string) (*pb.DeleteDentryBy
 }
 
 // DeleteDentryByPrefix deletes dentry by prefix
-func (s *Service) DeleteDentryByPrefix(ctx context.Context, req *pb.DeleteDentryByPrefixRequest) (*pb.DeleteDentryByPrefixResponse, error) {
+func (s *DentryService) DeleteDentryByPrefix(ctx context.Context, req *pb.DeleteDentryByPrefixRequest) (*pb.DeleteDentryByPrefixResponse, error) {
 	return deleteDentryByPrefix(s.store, req.GetDtab(), req.GetPrefix())
 }
 
@@ -139,7 +148,7 @@ func deleteDentryByPrefix(db store.DentryByPrefixDeletor, dtab, prefix string) (
 }
 
 // RouteToVersion routes a service to a specified version
-func (s *Service) RouteToVersion(ctx context.Context, req *pb.RouteToVersionRequest) (*pb.RouteToVersionResponse, error) {
+func (s *DentryService) RouteToVersion(ctx context.Context, req *pb.RouteToVersionRequest) (*pb.RouteToVersionResponse, error) {
 	return routeToVersion(
 		s.store,
 		s.k8s,
@@ -219,7 +228,7 @@ func routeToVersion(s ServiceSelectorDentryPutter, cs *kubernetes.Clientset, ln,
 }
 
 // DelegationTables returns a list of delgation tables managed by needle
-func (n *Service) DelegationTables(ctx context.Context, req *pb.DelegationTablesRequest) (*pb.DelegationTablesResponse, error) {
+func (n *DentryService) DelegationTables(ctx context.Context, req *pb.DelegationTablesRequest) (*pb.DelegationTablesResponse, error) {
 	tables, err := n.store.DelegationTables()
 	if err != nil {
 		return nil, err
@@ -236,7 +245,7 @@ func (n *Service) DelegationTables(ctx context.Context, req *pb.DelegationTables
 }
 
 // Dentries returns a list of dentries for a delegation table
-func (n *Service) Dentries(ctx context.Context, req *pb.DentriesRequest) (*pb.DentriesResponse, error) {
+func (n *DentryService) Dentries(ctx context.Context, req *pb.DentriesRequest) (*pb.DentriesResponse, error) {
 	dCh, err := n.store.DentriesByDtab(ctx, req.GetDtab())
 	if err != nil {
 		return nil, err
@@ -258,10 +267,6 @@ func (n *Service) Dentries(ctx context.Context, req *pb.DentriesRequest) (*pb.De
 	}, nil
 }
 
-// NewService returns a new Manager
-func New(store store.Store, k8s *kubernetes.Clientset) *Service {
-	return &Service{
-		store: store,
-		k8s:   k8s,
-	}
+func (ds *DentryService) RegisterWithServer(srv *grpc.Server) {
+	pb.RegisterDentryServiceServer(srv, ds)
 }

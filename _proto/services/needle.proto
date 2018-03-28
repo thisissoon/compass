@@ -19,7 +19,7 @@ message DataMigrationUpgradeRequest {
 
 // Response for [Upgrade](services.migration.DataMigrationService.Upgrade)
 message DataMigrationUpgradeResponse {
-  bool ok = 1;
+  // Empty response
 }
 
 // Request for [Version](services.migration.DataMigrationService.Version)
@@ -30,7 +30,7 @@ message DataMigrationVersionRequest {
 // Response for [Version](services.migration.DataMigrationService.Version)
 message DataMigrationVersionResponse {
   // Schema version
-  string version = 1;
+  uint32 version = 1;
 }
 
 // DentryManager manages dentries

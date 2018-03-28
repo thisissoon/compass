@@ -53,6 +53,7 @@ func init() {
 	viper.AddConfigPath(filepath.Join("$HOME", ".config"))
 	viper.AddConfigPath(filepath.Join("$HOME", ".config", "needle"))
 	viper.AddConfigPath(filepath.Join("$HOME", ".needle"))
+	viper.AddConfigPath(filepath.Join("$PWD", ".needle"))
 	// Environment variables
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.SetEnvPrefix("needle")
@@ -60,11 +61,9 @@ func init() {
 }
 
 // readConfig loads configuraion from a file
-func readConfig() {
+func readConfig() error {
 	if viper.GetString(configPathKey) != "" {
 		viper.SetConfigFile(viper.GetString(configPathKey))
 	}
-	if err := viper.ReadInConfig(); err != nil {
-		log.Warn().Err(err).Msg("error reading configuration file")
-	}
+	return viper.ReadInConfig()
 }
