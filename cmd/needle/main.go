@@ -64,8 +64,8 @@ func needleCmd() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "needle",
 		Short: "Start Needle, the gRPC server for the Compass client.",
-		Run: func(cmd *cobra.Command, _ []string) {
-			os.Exit(startNeedle())
+		RunE: func(cmd *cobra.Command, _ []string) error {
+			return startNeedle()
 		},
 	}
 	// Global flags
@@ -79,7 +79,7 @@ func needleCmd() *cobra.Command {
 	flags := cmd.Flags()
 	flags.StringP("listen", "l", "", "gRPC server listen address, e.g :5000")
 	// Bind local flags to config options
-	viper.BindPFlag(grpcListenKey, pflags.Lookup("listen"))
+	viper.BindPFlag(grpcListenKey, flags.Lookup("listen"))
 	// Add sub commands
 	cmd.AddCommand(
 		migrateCmd(),
@@ -89,14 +89,13 @@ func needleCmd() *cobra.Command {
 
 // startNeedle starts the needle gRPC server
 // returns os exit code
-func startNeedle() int {
+func startNeedle() error {
 	setup()
 	ctx, cancel := context.WithCancel(context.Background())
 	ctx = log.WithContext(ctx)
 	db, err := openDB()
 	if err != nil {
-		log.Error().Err(err).Msg("failed to open database connection")
-		return 1
+		return err
 	}
 	defer db.Close()
 	store := psql.New(db)
@@ -107,8 +106,7 @@ func startNeedle() int {
 	go syncer.Start(ctx)
 	kcc, err := kube.Clientset()
 	if err != nil {
-		log.Error().Err(err).Msg("failed to obtain kubernetes configuration")
-		return 1
+		return err
 	}
 	srv := server.New(
 		service.New(store, kcc),
@@ -118,11 +116,9 @@ func startNeedle() int {
 	signal.Notify(sigC, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 	defer cancel()
 	select {
-	case sig := <-sigC:
-		log.Debug().Str("signal", sig.String()).Msg("recieved OS signal")
-		return 0
+	case <-sigC:
+		return nil
 	case err := <-errC:
-		log.Debug().Err(err).Msg("runtime error")
-		return 1
+		return err
 	}
 }
