@@ -6,6 +6,33 @@ import "google/protobuf/timestamp.proto";
 
 option go_package = "services";
 
+// DataMigrationService handles data migrations for needle over gRPC
+service DataMigrationService {
+  rpc Upgrade(DataMigrationUpgradeRequest) returns(DataMigrationUpgradeResponse) {}
+  rpc Version(DataMigrationVersionRequest) returns(DataMigrationVersionResponse) {}
+}
+
+// Request for [Upgrade](services.migration.DataMigrationService.Upgrade)
+message DataMigrationUpgradeRequest {
+  // Empty request
+}
+
+// Response for [Upgrade](services.migration.DataMigrationService.Upgrade)
+message DataMigrationUpgradeResponse {
+  bool ok = 1;
+}
+
+// Request for [Version](services.migration.DataMigrationService.Version)
+message DataMigrationVersionRequest {
+  // Empty Request
+}
+
+// Response for [Version](services.migration.DataMigrationService.Version)
+message DataMigrationVersionResponse {
+  // Schema version
+  string version = 1;
+}
+
 // DentryManager manages dentries
 service DentryService {
   // PutService upserts services to be managed
