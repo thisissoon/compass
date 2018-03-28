@@ -1,7 +1,7 @@
 # Go Binary
 GO  ?= go
-APP = compass
-CGO = 1
+APP ?= compass
+CGO ?= 1
 
 # Docker
 DOCKER_REGISTRY ?= gcr.io
@@ -57,6 +57,7 @@ endif
 
 .PHONY: info
 info:
+	@echo "App:               ${APP}"
 	@echo "Version:           ${VERSION}"
 	@echo "Git Tag:           ${GIT_TAG}"
 	@echo "Git Commit:        ${GIT_COMMIT}"
